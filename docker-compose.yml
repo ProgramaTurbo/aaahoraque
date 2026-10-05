@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:17
+    container_name: aaahoraque-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: aaahoraque
+      POSTGRES_USER: aaahoraque
+      POSTGRES_PASSWORD: aaahoraque_dev
+    ports:
+      - "5440:5432"
+    volumes:
+      - aaahoraque_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aaahoraque -d aaahoraque"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  aaahoraque_postgres_data:

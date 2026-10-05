@@ -1,0 +1,20 @@
+{
+  "name": "aaahoraque",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "turbo dev",
+    "dev:web": "pnpm --filter web dev",
+    "dev:engine": "cd services/decision-engine && .venv/bin/python -m uvicorn app.main:app --reload --port 8000",
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down",
+    "db:status": "docker compose ps",
+    "test": "turbo test && pnpm test:engine",
+    "test:engine": "cd services/decision-engine && .venv/bin/python -m pytest",
+    "build": "turbo build",
+    "lint": "turbo lint"
+  },
+  "devDependencies": {
+    "turbo": "^2.0.0"
+  }
+}
