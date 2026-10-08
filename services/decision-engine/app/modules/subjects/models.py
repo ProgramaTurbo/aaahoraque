@@ -1,32 +1,71 @@
-from pydantic import BaseModel, Field
+from typing import Literal
+
+from pydantic import BaseModel, Field, field_validator
+
+
+class Prerequisite(BaseModel):
+    type: Literal["subject", "credits", "other"]
+    value: str
+    description: str | None = None
 
 
 class Subject(BaseModel):
     id: str
     name: str
+
     ects: float = Field(gt=0)
 
-    area: str
+    academic_year: int = Field(ge=1)
+    semester: Literal[1, 2, "annual"]
 
-    difficulty: float = Field(ge=0, le=10)
-    workload: float = Field(ge=0, le=10)
+    specialization_ids: list[str] = []
+
+    area_profile: dict[str, float]
+    professional_profile: dict[str, float]
 
     theoretical_component: float = Field(ge=0, le=10)
     practical_component: float = Field(ge=0, le=10)
+    project_component: float = Field(ge=0, le=10)
+    teamwork_component: float = Field(ge=0, le=10)
 
-    professional_relevance: float = Field(ge=0, le=10)
+    estimated_difficulty: float = Field(ge=0, le=10)
+    estimated_workload: float = Field(ge=0, le=10)
 
-    prerequisites: list[str] = []
+    competencies: list[str] = []
+    prerequisites: list[Prerequisite] = []
+
+    @field_validator("area_profile", "professional_profile")
+    @classmethod
+    def validate_profile(cls, profile: dict[str, float]) -> dict[str, float]:
+        for key, value in profile.items():
+            if not 0 <= value <= 1:
+                raise ValueError(
+                    f"Profile value for '{key}' must be between 0 and 1."
+                )
+        return profile
+
+
 class Specialization(BaseModel):
     id: str
     name: str
 
-    areas: list[str]
+    subject_ids: list[str]
+
+    area_profile: dict[str, float]
+    professional_profile: dict[str, float]
 
     theoretical_component: float = Field(ge=0, le=10)
     practical_component: float = Field(ge=0, le=10)
+    project_component: float = Field(ge=0, le=10)
 
-    software_orientation: float = Field(ge=0, le=10)
-    hardware_orientation: float = Field(ge=0, le=10)
-    data_orientation: float = Field(ge=0, le=10)
-    management_orientation: float = Field(ge=0, le=10)
+    competencies: list[str] = []
+
+    @field_validator("area_profile", "professional_profile")
+    @classmethod
+    def validate_profile(cls, profile: dict[str, float]) -> dict[str, float]:
+        for key, value in profile.items():
+            if not 0 <= value <= 1:
+                raise ValueError(
+                    f"Profile value for '{key}' must be between 0 and 1."
+                )
+        return profile
