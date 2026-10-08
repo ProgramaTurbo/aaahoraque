@@ -1,0 +1,38 @@
+[
+  {
+    "id": "artificial-intelligence",
+    "name": "Inteligencia Artificial",
+    "ects": 6,
+    "area": "AI",
+    "difficulty": 8,
+    "workload": 8,
+    "theoretical_component": 7,
+    "practical_component": 8,
+    "professional_relevance": 9,
+    "prerequisites": []
+  },
+  {
+    "id": "cybersecurity",
+    "name": "Seguridad Informática",
+    "ects": 6,
+    "area": "Cybersecurity",
+    "difficulty": 7,
+    "workload": 7,
+    "theoretical_component": 6,
+    "practical_component": 9,
+    "professional_relevance": 9,
+    "prerequisites": []
+  },
+  {
+    "id": "distributed-systems",
+    "name": "Sistemas Distribuidos",
+    "ects": 6,
+    "area": "Systems",
+    "difficulty": 8,
+    "workload": 8,
+    "theoretical_component": 7,
+    "practical_component": 8,
+    "professional_relevance": 8,
+    "prerequisites": []
+  }
+]
