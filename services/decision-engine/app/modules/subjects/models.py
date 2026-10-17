@@ -1,6 +1,7 @@
 from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator
+from typing import Any
 
 
 class Prerequisite(BaseModel):
@@ -69,3 +70,17 @@ class Specialization(BaseModel):
                     f"Profile value for '{key}' must be between 0 and 1."
                 )
         return profile
+
+class SubjectScenarioRequest(BaseModel):
+    student: SubjectDecisionProfile
+    priorities: SubjectDecisionPriorities
+    subjects: list[Subject]
+    changes: dict[str, Any]
+
+
+class SubjectScenarioResponse(BaseModel):
+    changes: dict[str, Any]
+    alternatives: list[dict]
+    comparison: list[dict]
+
+

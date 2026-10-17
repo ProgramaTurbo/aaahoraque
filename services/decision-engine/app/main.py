@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from app.modules.subjects.routes import router as subjects_router
 
 app = FastAPI(
     title="AAAhoraQue Decision Engine",
@@ -8,6 +9,8 @@ app = FastAPI(
     ),
     version="0.1.0",
 )
+
+app.include_router(subjects_router)
 
 
 @app.get("/health", tags=["System"])
