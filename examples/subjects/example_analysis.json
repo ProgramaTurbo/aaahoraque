@@ -1,0 +1,145 @@
+{
+  "student": {
+    "academic_interests": {
+      "artificial_intelligence": 9,
+      "data_science": 8,
+      "software_engineering": 7,
+      "cybersecurity": 5,
+      "systems": 6,
+      "networks": 3
+    },
+    "professional_interests": {
+      "machine_learning_engineer": 10,
+      "data_scientist": 8,
+      "software_engineer": 7,
+      "security_engineer": 4,
+      "systems_engineer": 5,
+      "cloud_engineer": 6,
+      "software_architect": 7
+    },
+    "theory_preference": 6,
+    "practice_preference": 9,
+    "project_preference": 8,
+    "teamwork_preference": 6,
+    "difficulty_tolerance": 8,
+    "workload_tolerance": 8
+  },
+  "academic_state": {
+    "completed_subject_ids": [
+      "programming-1",
+      "programming-2"
+    ],
+    "earned_credits": 150
+  },
+  "priorities": {
+    "academic_affinity": 35,
+    "professional_alignment": 30,
+    "learning_compatibility": 20,
+    "effort_compatibility": 15
+  },
+  "subjects": [
+    {
+      "id": "artificial-intelligence",
+      "name": "Inteligencia Artificial",
+      "ects": 6,
+      "academic_year": 4,
+      "semester": 1,
+      "specialization_ids": [
+        "computing"
+      ],
+      "area_profile": {
+        "artificial_intelligence": 1.0,
+        "data_science": 0.7,
+        "software_engineering": 0.3
+      },
+      "professional_profile": {
+        "machine_learning_engineer": 0.9,
+        "data_scientist": 0.8,
+        "software_engineer": 0.4
+      },
+      "theoretical_component": 7,
+      "practical_component": 8,
+      "project_component": 7,
+      "teamwork_component": 4,
+      "estimated_difficulty": 8,
+      "estimated_workload": 8,
+      "competencies": [
+        "problem_solving",
+        "machine_learning",
+        "algorithmic_thinking"
+      ],
+      "prerequisites": []
+    },
+    {
+      "id": "cybersecurity",
+      "name": "Seguridad Informática",
+      "ects": 6,
+      "academic_year": 4,
+      "semester": 1,
+      "specialization_ids": [
+        "information-technologies"
+      ],
+      "area_profile": {
+        "cybersecurity": 1.0,
+        "systems": 0.6,
+        "networks": 0.5
+      },
+      "professional_profile": {
+        "security_engineer": 0.95,
+        "systems_engineer": 0.5,
+        "network_engineer": 0.4
+      },
+      "theoretical_component": 6,
+      "practical_component": 9,
+      "project_component": 6,
+      "teamwork_component": 5,
+      "estimated_difficulty": 7,
+      "estimated_workload": 7,
+      "competencies": [
+        "security_analysis",
+        "risk_management",
+        "systems_security"
+      ],
+      "prerequisites": []
+    },
+    {
+      "id": "distributed-systems",
+      "name": "Sistemas Distribuidos",
+      "ects": 6,
+      "academic_year": 4,
+      "semester": 2,
+      "specialization_ids": [
+        "software-engineering",
+        "information-technologies"
+      ],
+      "area_profile": {
+        "systems": 0.9,
+        "software_engineering": 0.8,
+        "networks": 0.5
+      },
+      "professional_profile": {
+        "backend_engineer": 0.8,
+        "cloud_engineer": 0.9,
+        "software_architect": 0.7
+      },
+      "theoretical_component": 7,
+      "practical_component": 8,
+      "project_component": 8,
+      "teamwork_component": 6,
+      "estimated_difficulty": 8,
+      "estimated_workload": 8,
+      "competencies": [
+        "distributed_computing",
+        "concurrency",
+        "software_architecture"
+      ],
+      "prerequisites": [
+        {
+          "type": "subject",
+          "value": "operating-systems",
+          "description": "Conocimientos previos de sistemas operativos."
+        }
+      ]
+    }
+  ]
+}
