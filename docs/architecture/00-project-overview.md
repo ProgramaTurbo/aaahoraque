@@ -1,8 +1,8 @@
-# AAAhorAQue — Visión general del proyecto
+# AAAhoraQue — Visión general del proyecto
 
 ## 1. Propósito
 
-AAAhorAQue es un Sistema de Ayuda a la Toma de Decisiones Académicas
+AAAhoraQue es un Sistema de Ayuda a la Toma de Decisiones Académicas
 desarrollado como proyecto universitario.
 
 Su objetivo es ayudar al estudiante a explorar alternativas, identificar

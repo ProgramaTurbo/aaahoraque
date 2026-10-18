@@ -1,4 +1,4 @@
-# AAAhorAQue — Diseño de base de datos
+# AAAhoraQue — Diseño de base de datos
 
 Estado: diseño relacional inicial, pendiente de implementación.
 Responsabilidad: arquitectura común del equipo A³.

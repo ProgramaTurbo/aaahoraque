@@ -8,7 +8,7 @@ optativas dentro de su titulación.
 La decisión puede resultar compleja porque intervienen simultáneamente factores
 académicos, personales y profesionales.
 
-AAAhorAQue no realizará la elección en lugar del estudiante. El sistema permitirá
+AAAhoraQue no realizará la elección en lugar del estudiante. El sistema permitirá
 comparar alternativas, analizar sus consecuencias y estudiar distintos escenarios.
 
 ## 2. Decisor

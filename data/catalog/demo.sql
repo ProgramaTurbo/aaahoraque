@@ -1,5 +1,5 @@
 
--- AAAhorAQue - Catálogo académico DEMO
+-- AAAhoraQue - Catálogo académico DEMO
 -- Datos sintéticos. No representan información universitaria oficial.
 -- Ejecutar exclusivamente en la base local de desarrollo.
 
@@ -9,7 +9,7 @@ INSERT INTO universities (
     id, official_name, country_code, city, official_code
 ) VALUES (
     '10000000-0000-4000-8000-000000000001',
-    'Universidad Demo AAAhorAQue',
+    'Universidad Demo AAAhoraQue',
     'ES',
     'Ciudad Demo',
     'DEMO-UNIVERSITY'
@@ -31,7 +31,7 @@ INSERT INTO degrees (
     'Grado Demo en Ingeniería Informática',
     'bachelor',
     'engineering',
-    'Titulación ficticia utilizada para validar AAAhorAQue.'
+    'Titulación ficticia utilizada para validar AAAhoraQue.'
 );
 
 INSERT INTO degree_offerings (

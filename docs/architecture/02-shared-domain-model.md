@@ -1,4 +1,4 @@
-# AAAhorAQue — Modelo de dominio compartido
+# AAAhoraQue — Modelo de dominio compartido
 
 Estado: contrato conceptual inicial.
 Responsabilidad: arquitectura común del equipo A³.
