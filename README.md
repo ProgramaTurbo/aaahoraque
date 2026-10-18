@@ -1,4 +1,4 @@
-# AAAhorAQue
+# AAAhoraQue
 
 Sistema de Ayuda a la Toma de Decisiones para orientación académica universitaria.
 
@@ -10,7 +10,7 @@ Proyecto desarrollado por **Equipo A³**:
 
 ## Objetivo
 
-AAAhorAQue pretende ayudar a estudiantes a analizar distintas alternativas
+AAAhoraQue pretende ayudar a estudiantes a analizar distintas alternativas
 universitarias teniendo en cuenta múltiples dimensiones:
 
 - intereses;
