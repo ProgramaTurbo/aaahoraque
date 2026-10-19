@@ -8,6 +8,13 @@
       "when": 1792312565070,
       "tag": "0000_narrow_magus",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1792423137542,
+      "tag": "0001_friendly_talon",
+      "breakpoints": true
     }
   ]
 }
