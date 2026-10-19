@@ -1,3 +1,5 @@
+import DecisionDashboard from "@/features/subjects/decision-dashboard";
+
 const sections = [
   {
     number: "01",
@@ -116,6 +118,7 @@ export default function SubjectsPage() {
           y una evaluación real del motor.
         </p>
       </div>
+      <DecisionDashboard />
     </section>
   );
 }
