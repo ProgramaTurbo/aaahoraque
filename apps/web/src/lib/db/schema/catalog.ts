@@ -40,6 +40,7 @@ export const academicCenters = pgTable(
       .references(() => universities.id, { onDelete: "restrict" }),
     officialName: varchar("official_name", { length: 255 }).notNull(),
     officialCode: varchar("official_code", { length: 100 }),
+    province: varchar("province", { length: 150 }),
   }
 );
 
