@@ -3,6 +3,9 @@ from typing import Literal
 from pydantic import BaseModel, Field, field_validator
 from typing import Any
 
+from app.modules.subjects.student_profile import SubjectDecisionProfile
+from app.modules.subjects.decision_preferences import SubjectDecisionPriorities
+
 
 class Prerequisite(BaseModel):
     type: Literal["subject", "credits", "other"]
