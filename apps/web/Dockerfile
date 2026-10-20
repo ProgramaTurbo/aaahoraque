@@ -11,7 +11,10 @@ RUN pnpm install --frozen-lockfile
 
 ENV NEXT_TELEMETRY_DISABLED=1
 
-RUN pnpm --filter web build
+# URL ficticia exclusiva para evaluar las rutas durante next build.
+# La contraseña real nunca entra en la imagen.
+RUN DATABASE_URL="postgresql://build:build@127.0.0.1:5432/build" \
+    pnpm --filter web build
 
 EXPOSE 3000
 
