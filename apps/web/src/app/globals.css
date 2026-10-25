@@ -1,26 +1,834 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* =====================================================================
+   AAAhoraQue — Design System
+   Paleta: Morado (general) → Azul (carreras) → Verde (erasmus) → Aqua (asignaturas)
+   Inspiración: editorial noir, grano, reveals, scan lines
+   ===================================================================== */
+
+@theme {
+  /* --- Backgrounds (con tinte morado) --- */
+  --color-bg: #0a0812;
+  --color-bg-darker: #050308;
+  --color-bg-card: #14101e;
+  --color-bg-card-hover: #1a152a;
+
+  /* --- Foregrounds --- */
+  --color-fg: #f5f0ff;
+  --color-fg-dim: #c0b8d8;
+  --color-muted: #6a6280;
+  --color-silver: #c8c0e0;
+  --color-silver-dim: #5a5470;
+
+  /* --- Acento general: Morado --- */
+  --color-accent: #8b5cf6;
+  --color-accent-bright: #a78bfa;
+  --color-accent-dim: #6d28d9;
+  --color-accent-glow: rgba(139, 92, 246, 0.45);
+
+  /* --- Módulo Carreras: Azul --- */
+  --color-degree: #3b82f6;
+  --color-degree-bright: #60a5fa;
+  --color-degree-dim: #1d4ed8;
+  --color-degree-glow: rgba(59, 130, 246, 0.4);
+
+  /* --- Módulo Erasmus: Verde --- */
+  --color-erasmus: #10b981;
+  --color-erasmus-bright: #34d399;
+  --color-erasmus-dim: #047857;
+  --color-erasmus-glow: rgba(16, 185, 129, 0.4);
+
+  /* --- Módulo Asignaturas: Aqua --- */
+  --color-subjects: #06b6d4;
+  --color-subjects-bright: #22d3ee;
+  --color-subjects-dim: #0e7490;
+  --color-subjects-glow: rgba(6, 182, 212, 0.4);
+
+  /* --- Bordes --- */
+  --color-border: #1f1830;
+  --color-border-light: #2a2240;
+
+  /* --- Tipografía: hereda Geist de next/font --- */
+  --font-display: var(--font-geist-sans), system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), monospace;
+
+  /* --- Animaciones --- */
+  --animate-marquee: marquee 38s linear infinite;
+  --animate-rec-blink: rec-blink 1.5s ease-in-out infinite;
+  --animate-pulse-cta: pulse-cta 2.4s ease-out infinite;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+/* =====================================================================
+   Base
+   ===================================================================== */
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-bg);
+  color: var(--color-fg);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  overflow-x: hidden;
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Tipografía utilitaria */
+.font-display { font-family: var(--font-geist-sans), system-ui, sans-serif; font-weight: 700; letter-spacing: -0.02em; }
+.font-mono { font-family: var(--font-geist-mono), monospace; }
+.font-heading { font-family: var(--font-geist-sans), system-ui, sans-serif; font-weight: 600; letter-spacing: 0.01em; }
+
+/* =====================================================================
+   Grain overlay — textura sutil tipo película
+   ===================================================================== */
+
+.grain {
+  position: fixed;
+  inset: -10%;
+  pointer-events: none;
+  z-index: 200;
+  opacity: 0.06;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='250' height='250'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  mix-blend-mode: overlay;
+  will-change: transform;
+}
+
+/* =====================================================================
+   Background con textura radial sutil
+   ===================================================================== */
+
+.bg-textured {
+  background-color: var(--color-bg);
+  background-image:
+    radial-gradient(circle at 20% 30%, rgba(139, 92, 246, 0.06) 0%, transparent 40%),
+    radial-gradient(circle at 80% 70%, rgba(16, 185, 129, 0.05) 0%, transparent 40%),
+    radial-gradient(circle at 50% 50%, rgba(6, 182, 212, 0.03) 0%, transparent 50%),
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='400'><filter id='r'><feTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='2'/></filter><rect width='100%' height='100%' filter='url(%23r)' opacity='0.35'/></svg>");
+  background-blend-mode: normal, normal, normal, overlay;
+}
+
+/* Variante por módulo */
+.bg-textured-degree {
+  background-color: var(--color-bg);
+  background-image:
+    radial-gradient(circle at 20% 30%, rgba(59, 130, 246, 0.08) 0%, transparent 45%),
+    radial-gradient(circle at 80% 70%, rgba(59, 130, 246, 0.04) 0%, transparent 40%);
+}
+
+.bg-textured-erasmus {
+  background-color: var(--color-bg);
+  background-image:
+    radial-gradient(circle at 20% 30%, rgba(16, 185, 129, 0.08) 0%, transparent 45%),
+    radial-gradient(circle at 80% 70%, rgba(16, 185, 129, 0.04) 0%, transparent 40%);
+}
+
+.bg-textured-subjects {
+  background-color: var(--color-bg);
+  background-image:
+    radial-gradient(circle at 20% 30%, rgba(6, 182, 212, 0.08) 0%, transparent 45%),
+    radial-gradient(circle at 80% 70%, rgba(6, 182, 212, 0.04) 0%, transparent 40%);
+}
+
+/* =====================================================================
+   Scan line — líneas sutiles tipo monitor
+   ===================================================================== */
+
+.scan-line {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent 0px,
+    transparent 3px,
+    rgba(0, 0, 0, 0.12) 3px,
+    rgba(0, 0, 0, 0.12) 4px
+  );
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* =====================================================================
+   Reveal on scroll
+   ===================================================================== */
+
+.reveal {
+  opacity: 0;
+  transform: translateY(48px);
+  transition: opacity 0.9s cubic-bezier(0.22, 1, 0.36, 1),
+              transform 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+  transition-delay: var(--delay, 0s);
+}
+.reveal.in-view { opacity: 1; transform: translateY(0); }
+
+.reveal-stagger > * {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+              transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.reveal-stagger.in-view > * { opacity: 1; transform: translateY(0); }
+.reveal-stagger.in-view > *:nth-child(1) { transition-delay: 0s; }
+.reveal-stagger.in-view > *:nth-child(2) { transition-delay: 0.1s; }
+.reveal-stagger.in-view > *:nth-child(3) { transition-delay: 0.2s; }
+.reveal-stagger.in-view > *:nth-child(4) { transition-delay: 0.3s; }
+.reveal-stagger.in-view > *:nth-child(5) { transition-delay: 0.4s; }
+.reveal-stagger.in-view > *:nth-child(6) { transition-delay: 0.5s; }
+
+/* =====================================================================
+   Headline reveal — palabras que suben
+   ===================================================================== */
+
+.headline-line {
+  overflow: hidden;
+  display: block;
+}
+.headline-line span {
+  display: inline-block;
+  transform: translateY(110%);
+  transition: transform 1s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.in-view .headline-line span { transform: translateY(0); }
+.headline-line:nth-child(2) span { transition-delay: 0.1s; }
+.headline-line:nth-child(3) span { transition-delay: 0.2s; }
+
+/* =====================================================================
+   Section marker — etiqueta de sección
+   ===================================================================== */
+
+.section-marker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.75rem;
+  letter-spacing: 0.2em;
+  color: var(--color-accent);
+  text-transform: uppercase;
+}
+.section-marker::before {
+  content: '';
+  width: 32px;
+  height: 1px;
+  background: var(--color-accent);
+}
+
+/* Variantes por módulo */
+.section-marker-degree { color: var(--color-degree); }
+.section-marker-degree::before { background: var(--color-degree); }
+.section-marker-erasmus { color: var(--color-erasmus); }
+.section-marker-erasmus::before { background: var(--color-erasmus); }
+.section-marker-subjects { color: var(--color-subjects); }
+.section-marker-subjects::before { background: var(--color-subjects); }
+
+/* =====================================================================
+   Text stroke — tipografía hueca
+   ===================================================================== */
+
+.text-stroke {
+  -webkit-text-stroke: 1.5px var(--color-silver-dim);
+  color: transparent;
+}
+.text-stroke-accent {
+  -webkit-text-stroke: 1.5px var(--color-accent);
+  color: transparent;
+}
+.text-stroke-degree {
+  -webkit-text-stroke: 1.5px var(--color-degree);
+  color: transparent;
+}
+.text-stroke-erasmus {
+  -webkit-text-stroke: 1.5px var(--color-erasmus);
+  color: transparent;
+}
+.text-stroke-subjects {
+  -webkit-text-stroke: 1.5px var(--color-subjects);
+  color: transparent;
+}
+
+/* =====================================================================
+   Link underline animado
+   ===================================================================== */
+
+.link-underline {
+  position: relative;
+  display: inline-block;
+}
+.link-underline::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -3px;
+  width: 0;
+  height: 1px;
+  background: var(--color-accent);
+  transition: width 0.4s ease;
+}
+.link-underline:hover::after { width: 100%; }
+
+.link-underline-degree::after { background: var(--color-degree); }
+.link-underline-erasmus::after { background: var(--color-erasmus); }
+.link-underline-subjects::after { background: var(--color-subjects); }
+
+/* =====================================================================
+   Nav link
+   ===================================================================== */
+
+.nav-link {
+  position: relative;
+  font-family: var(--font-geist-sans), sans-serif;
+  font-size: 0.85rem;
+  font-weight: 500;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--color-fg-dim);
+  transition: color 0.3s;
+}
+.nav-link:hover { color: var(--color-fg); }
+.nav-link::before {
+  content: '';
+  position: absolute;
+  left: -14px;
+  top: 50%;
+  transform: translateY(-50%) scaleY(0);
+  width: 4px;
+  height: 4px;
+  background: var(--color-accent);
+  transition: transform 0.3s;
+}
+.nav-link:hover::before { transform: translateY(-50%) scaleY(1); }
+
+/* Variantes por módulo activo */
+.nav-link-degree:hover { color: var(--color-degree); }
+.nav-link-degree:hover::before { background: var(--color-degree); }
+.nav-link-erasmus:hover { color: var(--color-erasmus); }
+.nav-link-erasmus:hover::before { background: var(--color-erasmus); }
+.nav-link-subjects:hover { color: var(--color-subjects); }
+.nav-link-subjects:hover::before { background: var(--color-subjects); }
+
+/* =====================================================================
+   Cards — info card base
+   ===================================================================== */
+
+.info-card {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  transition: border-color 0.4s, background 0.4s, transform 0.4s;
+}
+.info-card:hover {
+  border-color: var(--color-accent-dim);
+  background: var(--color-bg-card-hover);
+}
+
+/* Variantes por módulo */
+.info-card-degree:hover { border-color: var(--color-degree-dim); }
+.info-card-erasmus:hover { border-color: var(--color-erasmus-dim); }
+.info-card-subjects:hover { border-color: var(--color-subjects-dim); }
+
+/* =====================================================================
+   Notch corner — decoración de esquinas
+   ===================================================================== */
+
+.notch-corner { position: relative; }
+.notch-corner::before,
+.notch-corner::after {
+  content: '';
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border: 1px solid var(--color-accent);
+  pointer-events: none;
+  transition: border-color 0.4s;
+}
+.notch-corner::before {
+  top: -1px;
+  left: -1px;
+  border-right: none;
+  border-bottom: none;
+}
+.notch-corner::after {
+  bottom: -1px;
+  right: -1px;
+  border-left: none;
+  border-top: none;
+}
+
+.notch-corner-degree::before,
+.notch-corner-degree::after { border-color: var(--color-degree); }
+.notch-corner-erasmus::before,
+.notch-corner-erasmus::after { border-color: var(--color-erasmus); }
+.notch-corner-subjects::before,
+.notch-corner-subjects::after { border-color: var(--color-subjects); }
+
+/* =====================================================================
+   Program card — tarjetas de módulos en home
+   ===================================================================== */
+
+.program-card {
+  transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.program-card:hover { transform: translateY(-8px); }
+.program-card .program-img {
+  transition: transform 0.8s cubic-bezier(0.22, 1, 0.36, 1), filter 0.8s;
+}
+.program-card:hover .program-img {
+  transform: scale(1.08);
+  filter: grayscale(70%) contrast(1.3) brightness(0.75);
+}
+.program-card:hover .program-number {
+  color: var(--color-accent);
+  -webkit-text-stroke-color: var(--color-accent);
+}
+
+/* =====================================================================
+   Pill / Tag selector
+   ===================================================================== */
+
+.goal-pill {
+  cursor: pointer;
+  padding: 0.55rem 1.1rem;
+  border: 1px solid var(--color-border-light);
+  background: transparent;
+  color: var(--color-fg-dim);
+  font-family: var(--font-geist-sans), sans-serif;
+  font-size: 0.85rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transition: all 0.3s;
+}
+.goal-pill:hover {
+  border-color: var(--color-silver-dim);
+  color: var(--color-fg);
+}
+.goal-pill.active {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: #000;
+  font-weight: 600;
+}
+
+.goal-pill-degree.active {
+  background: var(--color-degree);
+  border-color: var(--color-degree);
+}
+.goal-pill-erasmus.active {
+  background: var(--color-erasmus);
+  border-color: var(--color-erasmus);
+}
+.goal-pill-subjects.active {
+  background: var(--color-subjects);
+  border-color: var(--color-subjects);
+}
+
+/* =====================================================================
+   Form input — estilo editorial minimal
+   ===================================================================== */
+
+.form-input {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--color-border-light);
+  color: var(--color-fg);
+  padding: 0.85rem 0;
+  font-family: var(--font-geist-sans), sans-serif;
+  font-size: 1.05rem;
+  width: 100%;
+  transition: border-color 0.3s;
+}
+.form-input:focus {
+  outline: none;
+  border-color: var(--color-accent);
+}
+.form-input::placeholder {
+  color: var(--color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.8rem;
+}
+
+.form-input-degree:focus { border-color: var(--color-degree); }
+.form-input-erasmus:focus { border-color: var(--color-erasmus); }
+.form-input-subjects:focus { border-color: var(--color-subjects); }
+
+/* =====================================================================
+   Booking frame / panel decorado
+   ===================================================================== */
+
+.booking-frame {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.04) 0%, transparent 50%, rgba(139, 92, 246, 0.02) 100%);
+  border: 1px solid var(--color-border);
+  position: relative;
+}
+.booking-frame::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 60px;
+  height: 60px;
+  border-top: 2px solid var(--color-accent);
+  border-left: 2px solid var(--color-accent);
+}
+.booking-frame::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 60px;
+  height: 60px;
+  border-bottom: 2px solid var(--color-accent);
+  border-right: 2px solid var(--color-accent);
+}
+
+.booking-frame-degree {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.04) 0%, transparent 50%, rgba(59, 130, 246, 0.02) 100%);
+}
+.booking-frame-degree::before,
+.booking-frame-degree::after {
+  border-color: var(--color-degree);
+}
+.booking-frame-erasmus {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.04) 0%, transparent 50%, rgba(16, 185, 129, 0.02) 100%);
+}
+.booking-frame-erasmus::before,
+.booking-frame-erasmus::after {
+  border-color: var(--color-erasmus);
+}
+.booking-frame-subjects {
+  background: linear-gradient(135deg, rgba(6, 182, 212, 0.04) 0%, transparent 50%, rgba(6, 182, 212, 0.02) 100%);
+}
+.booking-frame-subjects::before,
+.booking-frame-subjects::after {
+  border-color: var(--color-subjects);
+}
+
+/* =====================================================================
+   Pulse button — CTA con halo
+   ===================================================================== */
+
+@keyframes pulse-cta {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.6), 0 0 40px rgba(139, 92, 246, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 0 18px rgba(139, 92, 246, 0), 0 0 40px rgba(139, 92, 246, 0.3);
+  }
+}
+.pulse-btn { animation: pulse-cta 2.4s ease-out infinite; }
+
+@keyframes pulse-cta-degree {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.6), 0 0 40px rgba(59, 130, 246, 0.3); }
+  50% { box-shadow: 0 0 0 18px rgba(59, 130, 246, 0), 0 0 40px rgba(59, 130, 246, 0.3); }
+}
+.pulse-btn-degree { animation: pulse-cta-degree 2.4s ease-out infinite; }
+
+@keyframes pulse-cta-erasmus {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6), 0 0 40px rgba(16, 185, 129, 0.3); }
+  50% { box-shadow: 0 0 0 18px rgba(16, 185, 129, 0), 0 0 40px rgba(16, 185, 129, 0.3); }
+}
+.pulse-btn-erasmus { animation: pulse-cta-erasmus 2.4s ease-out infinite; }
+
+@keyframes pulse-cta-subjects {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(6, 182, 212, 0.6), 0 0 40px rgba(6, 182, 212, 0.3); }
+  50% { box-shadow: 0 0 0 18px rgba(6, 182, 212, 0), 0 0 40px rgba(6, 182, 212, 0.3); }
+}
+.pulse-btn-subjects { animation: pulse-cta-subjects 2.4s ease-out infinite; }
+
+/* =====================================================================
+   Marquee — ticker horizontal
+   ===================================================================== */
+
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.marquee-track {
+  display: flex;
+  animation: marquee 38s linear infinite;
+  width: max-content;
+}
+
+/* =====================================================================
+   Rec dot — indicador parpadeante
+   ===================================================================== */
+
+@keyframes rec-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+.rec-dot { animation: rec-blink 1.5s ease-in-out infinite; }
+
+/* =====================================================================
+   Progress bar
+   ===================================================================== */
+
+.progress-bar {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+.progress-bar-fill {
+  height: 100%;
+  background: var(--color-accent);
+  width: 0%;
+  transition: width 0.1s linear;
+}
+.progress-bar-fill-degree { background: var(--color-degree); }
+.progress-bar-fill-erasmus { background: var(--color-erasmus); }
+.progress-bar-fill-subjects { background: var(--color-subjects); }
+
+/* =====================================================================
+   Number display — contadores
+   ===================================================================== */
+
+.number-display {
+  font-variant-numeric: tabular-nums;
+}
+
+/* =====================================================================
+   Image treatment — noir académico
+   ===================================================================== */
+
+.img-noir {
+  filter: grayscale(100%) contrast(1.35) brightness(0.78);
+  transition: filter 0.8s ease, transform 0.8s ease;
+}
+
+.img-tinted-degree {
+  filter: grayscale(60%) contrast(1.25) brightness(0.82) sepia(0.15) hue-rotate(180deg) saturate(0.9);
+}
+.img-tinted-erasmus {
+  filter: grayscale(60%) contrast(1.25) brightness(0.82) sepia(0.15) hue-rotate(90deg) saturate(0.9);
+}
+.img-tinted-subjects {
+  filter: grayscale(60%) contrast(1.25) brightness(0.82) sepia(0.15) hue-rotate(140deg) saturate(0.9);
+}
+
+/* =====================================================================
+   Hero overlay — gradientes en capas
+   ===================================================================== */
+
+.hero-overlay {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(10, 8, 18, 0.92) 0%, rgba(10, 8, 18, 0.45) 28%, rgba(10, 8, 18, 0.55) 65%, rgba(10, 8, 18, 0.98) 100%),
+    linear-gradient(90deg, rgba(10, 8, 18, 0.85) 0%, rgba(10, 8, 18, 0.2) 50%, rgba(10, 8, 18, 0.5) 100%),
+    radial-gradient(ellipse at 25% 60%, rgba(139, 92, 246, 0.18) 0%, transparent 55%);
+}
+
+.hero-overlay-degree {
+  background:
+    linear-gradient(180deg, rgba(10, 8, 18, 0.92) 0%, rgba(10, 8, 18, 0.45) 28%, rgba(10, 8, 18, 0.55) 65%, rgba(10, 8, 18, 0.98) 100%),
+    linear-gradient(90deg, rgba(10, 8, 18, 0.85) 0%, rgba(10, 8, 18, 0.2) 50%, rgba(10, 8, 18, 0.5) 100%),
+    radial-gradient(ellipse at 25% 60%, rgba(59, 130, 246, 0.18) 0%, transparent 55%);
+}
+.hero-overlay-erasmus {
+  background:
+    linear-gradient(180deg, rgba(10, 8, 18, 0.92) 0%, rgba(10, 8, 18, 0.45) 28%, rgba(10, 8, 18, 0.55) 65%, rgba(10, 8, 18, 0.98) 100%),
+    linear-gradient(90deg, rgba(10, 8, 18, 0.85) 0%, rgba(10, 8, 18, 0.2) 50%, rgba(10, 8, 18, 0.5) 100%),
+    radial-gradient(ellipse at 25% 60%, rgba(16, 185, 129, 0.18) 0%, transparent 55%);
+}
+.hero-overlay-subjects {
+  background:
+    linear-gradient(180deg, rgba(10, 8, 18, 0.92) 0%, rgba(10, 8, 18, 0.45) 28%, rgba(10, 8, 18, 0.55) 65%, rgba(10, 8, 18, 0.98) 100%),
+    linear-gradient(90deg, rgba(10, 8, 18, 0.85) 0%, rgba(10, 8, 18, 0.2) 50%, rgba(10, 8, 18, 0.5) 100%),
+    radial-gradient(ellipse at 25% 60%, rgba(6, 182, 212, 0.18) 0%, transparent 55%);
+}
+
+/* =====================================================================
+   Sticky CTA bar
+   ===================================================================== */
+
+.sticky-cta {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  transform: translateY(110%);
+  transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  z-index: 90;
+}
+.sticky-cta.visible { transform: translateY(0); }
+
+/* =====================================================================
+   Toast — notificaciones
+   ===================================================================== */
+
+.toast {
+  position: fixed;
+  top: 90px;
+  right: 24px;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-accent);
+  border-left: 3px solid var(--color-accent);
+  padding: 1rem 1.5rem;
+  z-index: 150;
+  transform: translateX(120%);
+  transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+  max-width: 360px;
+}
+.toast.visible { transform: translateX(0); }
+
+/* =====================================================================
+   Flip card — para perfiles de universidades / destinos
+   ===================================================================== */
+
+.flip-card {
+  perspective: 1800px;
+  height: 520px;
+}
+.flip-card-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.9s cubic-bezier(0.4, 0.2, 0.2, 1);
+  transform-style: preserve-3d;
+}
+.flip-card:hover .flip-card-inner,
+.flip-card.flipped .flip-card-inner {
+  transform: rotateY(180deg);
+}
+.flip-face {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  overflow: hidden;
+}
+.flip-back { transform: rotateY(180deg); }
+
+/* =====================================================================
+   Carousel track — para comparativas horizontales
+   ===================================================================== */
+
+.story-track {
+  display: flex;
+  gap: 1.5rem;
+  cursor: grab;
+  user-select: none;
+  will-change: transform;
+  padding: 0 2rem;
+}
+.story-track.dragging { cursor: grabbing; }
+.story-track * { pointer-events: none; }
+.story-card {
+  flex: 0 0 auto;
+  width: 400px;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  transition: border-color 0.4s, transform 0.4s;
+}
+.story-card:hover { border-color: var(--color-accent); }
+
+/* =====================================================================
+   Badge — etiquetas de tipo de dato
+   ===================================================================== */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.25rem 0.6rem;
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  border: 1px solid var(--color-border-light);
+  color: var(--color-fg-dim);
+}
+
+.badge-official { border-color: var(--color-subjects); color: var(--color-subjects); }
+.badge-declared { border-color: var(--color-erasmus); color: var(--color-erasmus); }
+.badge-estimated { border-color: var(--color-degree); color: var(--color-degree); }
+.badge-calculated { border-color: var(--color-accent); color: var(--color-accent); }
+.badge-demo { border-color: var(--color-silver-dim); color: var(--color-silver-dim); }
+
+/* =====================================================================
+   Restriction vs Criterion — bloque visual
+   ===================================================================== */
+
+.restriction-block {
+  border-left: 2px solid #ef4444;
+  padding-left: 1rem;
+  background: rgba(239, 68, 68, 0.05);
+}
+.criterion-block {
+  border-left: 2px solid var(--color-accent);
+  padding-left: 1rem;
+  background: rgba(139, 92, 246, 0.05);
+}
+.preference-block {
+  border-left: 2px solid var(--color-erasmus);
+  padding-left: 1rem;
+  background: rgba(16, 185, 129, 0.05);
+}
+
+/* =====================================================================
+   Custom scrollbar
+   ===================================================================== */
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: var(--color-bg-darker); }
+::-webkit-scrollbar-thumb { background: var(--color-accent-dim); }
+::-webkit-scrollbar-thumb:hover { background: var(--color-accent); }
+
+/* =====================================================================
+   Dark mode — respeta prefers-color-scheme
+   (la base ya es oscura; esto refuerza compatibilidad)
+   ===================================================================== */
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --color-bg: #faf8ff;
+    --color-bg-darker: #f0ecfa;
+    --color-bg-card: #ffffff;
+    --color-bg-card-hover: #f5f0ff;
+    --color-fg: #1a152a;
+    --color-fg-dim: #4a4260;
+    --color-muted: #8a82a0;
+    --color-border: #e0d8f0;
+    --color-border-light: #d0c8e0;
+  }
+  .grain { opacity: 0.04; mix-blend-mode: multiply; }
+  .hero-overlay {
+    background:
+      linear-gradient(180deg, rgba(250, 248, 255, 0.92) 0%, rgba(250, 248, 255, 0.45) 28%, rgba(250, 248, 255, 0.55) 65%, rgba(250, 248, 255, 0.98) 100%),
+      radial-gradient(ellipse at 25% 60%, rgba(139, 92, 246, 0.12) 0%, transparent 55%);
+  }
+  .img-noir { filter: grayscale(40%) contrast(1.1) brightness(0.95); }
+}
+
+/* =====================================================================
+   Responsive
+   ===================================================================== */
+
+@media (max-width: 768px) {
+  .flip-card { height: 460px; }
+  .story-card { width: 300px; }
+  .section-marker { font-size: 0.7rem; }
+}
+
+/* =====================================================================
+   Utility: demo data indicator
+   ===================================================================== */
+
+.demo-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.7rem;
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+  border: 1px dashed var(--color-border-light);
+  border-radius: 2px;
+}
+.demo-indicator::before {
+  content: '◆';
+  color: var(--color-accent);
 }
