@@ -1,8 +1,10 @@
+import Link from "next/link";
 // apps/web/src/app/page.tsx
 import { db } from "@/lib/db";
 import { universities, academicCenters, degrees, degreeOfferings } from "@/lib/db/schema";
 import { count } from "drizzle-orm";
 import StatsCounter from "@/components/StatsCounter";
+import HomeExploreCarousel from "@/components/HomeExploreCarousel";
 
 // Asegura que la página se renderice en el servidor en cada request (datos frescos)
 export const dynamic = "force-dynamic";
@@ -24,7 +26,7 @@ async function getStats() {
   } catch (error) {
     console.error("Error al obtener estadísticas:", error);
     // Si la base de datos no está conectada o hay error, devolvemos 0 para que la UI no rompa
-    return { universities: 0, centers: 0, degrees: 0, offerings: 0 };
+    return null;
   }
 }
 
@@ -34,16 +36,16 @@ export default async function Home() {
 
   // 2. Formateamos para el componente de animación
   const statsArray = [
-    { label: "Universidades", target: statsData.universities, color: "var(--color-accent)" },
-    { label: "Centros", target: statsData.centers, color: "var(--color-degree)" },
-    { label: "Titulaciones", target: statsData.degrees, color: "var(--color-erasmus)" },
-    { label: "Ofertas", target: statsData.offerings, color: "var(--color-subjects)" },
+    { label: "Universidades", target: (statsData?.universities ?? 0), color: "var(--color-accent)" },
+    { label: "Centros", target: (statsData?.centers ?? 0), color: "var(--color-degree)" },
+    { label: "Titulaciones", target: (statsData?.degrees ?? 0), color: "var(--color-erasmus)" },
+    { label: "Ofertas", target: (statsData?.offerings ?? 0), color: "var(--color-subjects)" },
   ];
 
   return (
     <div className="bg-textured min-h-[calc(100vh-80px)]">
       <div className="max-w-[1600px] mx-auto px-6 lg:px-10 py-20">
-        
+
         {/* Hero */}
         <div className="mb-16">
           <div className="section-marker mb-6">
@@ -55,19 +57,21 @@ export default async function Home() {
             <span className="block">DECIDE TÚ.</span>
           </h1>
           <p className="max-w-xl text-[var(--color-fg-dim)] text-lg">
-            Orientación para alumnos de bachiller y universitarios sobre qué carrera elegir, 
+            Orientación para alumnos de bachiller y universitarios sobre qué carrera elegir,
             dónde hacer Erasmus y qué asignaturas cursar.
           </p>
         </div>
 
+        <HomeExploreCarousel />
+
         {/* Contador Animado (Trae datos de la BBDD) */}
-        <StatsCounter stats={statsArray} />
+        {statsData ? <StatsCounter stats={statsArray} /> : <p role="status" className="mb-16 text-sm text-[var(--color-fg-dim)]">Las estadísticas académicas no están disponibles en este momento.</p>}
 
         {/* Módulos */}
         <div className="grid md:grid-cols-3 gap-6 lg:gap-8">
-          
+
           {/* Carreras (Azul) */}
-          <article className="program-card info-card-degree notch-corner-degree group cursor-pointer">
+          <Link href="/degrees" className="program-card info-card-degree notch-corner-degree group block">
             <div className="relative h-72 overflow-hidden bg-[var(--color-bg-darker)] flex items-center justify-center">
               <div className="absolute top-4 left-4 font-mono text-[11px] text-[var(--color-degree)] tracking-[0.2em]">01 / CARRERAS</div>
               <div className="text-9xl text-[var(--color-degree)] opacity-20 font-display">?</div>
@@ -82,10 +86,10 @@ export default async function Home() {
                 <span className="text-[var(--color-degree)]">→</span>
               </div>
             </div>
-          </article>
+          </Link>
 
           {/* Erasmus (Aqua) */}
-          <article className="program-card info-card-erasmus notch-corner-erasmus group cursor-pointer">
+          <Link href="/erasmus" className="program-card info-card-erasmus notch-corner-erasmus group block">
             <div className="relative h-72 overflow-hidden bg-[var(--color-bg-darker)] flex items-center justify-center">
               <div className="absolute top-4 left-4 font-mono text-[11px] text-[var(--color-erasmus)] tracking-[0.2em]">02 / ERASMUS</div>
               <div className="text-9xl text-[var(--color-erasmus)] opacity-20 font-display">✈</div>
@@ -100,10 +104,10 @@ export default async function Home() {
                 <span className="text-[var(--color-erasmus)]">→</span>
               </div>
             </div>
-          </article>
+          </Link>
 
           {/* Asignaturas (Verde) */}
-          <article className="program-card info-card-subjects notch-corner-subjects group cursor-pointer">
+          <Link href="/subjects" className="program-card info-card-subjects notch-corner-subjects group block">
             <div className="relative h-72 overflow-hidden bg-[var(--color-bg-darker)] flex items-center justify-center">
               <div className="absolute top-4 left-4 font-mono text-[11px] text-[var(--color-subjects)] tracking-[0.2em]">03 / ASIGNATURAS</div>
               <div className="text-9xl text-[var(--color-subjects)] opacity-20 font-display">≡</div>
@@ -118,13 +122,13 @@ export default async function Home() {
                 <span className="text-[var(--color-subjects)]">→</span>
               </div>
             </div>
-          </article>
+          </Link>
 
         </div>
 
         {/* Indicador de datos demo */}
         <div className="mt-16 flex justify-center">
-          <span className="demo-indicator">Datos de demostración para desarrollo</span>
+          <span className="demo-indicator">Indicadores del catálogo universitario</span>
         </div>
 
       </div>

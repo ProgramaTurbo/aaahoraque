@@ -1,0 +1,25 @@
+
+name: aaahoraque-vm
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    restart: unless-stopped
+    network_mode: host
+    env_file:
+      - .env.vm.local
+    environment:
+      NODE_ENV: production
+      NEXT_TELEMETRY_DISABLED: "1"
+    depends_on:
+      - decision-engine
+
+  decision-engine:
+    build:
+      context: .
+      dockerfile: services/decision-engine/Dockerfile
+    restart: unless-stopped
+    network_mode: host
+
