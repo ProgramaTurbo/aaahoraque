@@ -3,6 +3,8 @@ import { createContext, useContext, useState, type Dispatch, type SetStateAction
 import type { OrientationProfile } from "./orientation-profile";
 
 type OrientationSession = {
+  isRandomProfile: boolean;
+  setIsRandomProfile: Dispatch<SetStateAction<boolean>>;
   draft: OrientationProfile | undefined;
   setDraft: Dispatch<SetStateAction<OrientationProfile | undefined>>;
   profile: OrientationProfile | undefined;
@@ -15,7 +17,8 @@ export function OrientationProvider({ children }: { children: ReactNode }) {
   const [draft, setDraft] = useState<OrientationProfile>();
   const [profile, setProfile] = useState<OrientationProfile>();
   const [step, setStep] = useState(0);
-  return <Context.Provider value={{ draft, setDraft, profile, setProfile, step, setStep }}>{children}</Context.Provider>;
+  const [isRandomProfile, setIsRandomProfile] = useState(false);
+  return <Context.Provider value={{ draft, setDraft, profile, setProfile, step, setStep, isRandomProfile, setIsRandomProfile }}>{children}</Context.Provider>;
 }
 export function useOrientationSession() {
   const value = useContext(Context);

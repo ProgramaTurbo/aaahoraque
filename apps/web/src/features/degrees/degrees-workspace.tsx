@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { DegreeSummary as CatalogOffering } from "./types";
 import { OfferingPlans } from "./offering-plans";
+import { OfferingCard } from "./offering-card";
 import { PageResultCharts, SelectedOfferingsChart } from "./result-charts";
 import type { OrientationProfile } from "./orientation-profile";
 
@@ -92,12 +93,9 @@ export function DegreesWorkspace({ profile }: { profile?: OrientationProfile }) 
         <p className="text-sm text-[var(--color-fg-dim)]">La selección se conserva al filtrar y se borra al salir de esta página. Al alcanzar tres alternativas, quita una para añadir otra.</p>
         {!loading && error !== requestKey && !filtered.length && <p>No hay ofertas con estos filtros. Prueba otra búsqueda o universidad.</p>}
         {profile && result?.key === requestKey && filtered.length > 0 && <PageResultCharts offerings={filtered} page={page} activeCriteria={result.activeCriteria} />}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((o) => <article key={o.id} className={panel}>
-            <h3 className="text-lg font-semibold">{o.degree.name}</h3>
-            <p className="mt-2">{o.university.name}</p>
-            <p className="mt-2 text-sm text-[var(--color-fg-dim)]">{o.center?.name ?? "Centro sin especificar"}</p>
-            <p className="my-4 text-sm">{modality(o)}{o.province ? ` · ${o.province}` : ""}</p>
+        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+          {filtered.map((o) => <OfferingCard key={o.id} offering={o} selected={ids.includes(o.id)} disabled={!ids.includes(o.id) && ids.length >= 3} modalityLabel={modality(o)} onToggle={() => toggle(o.id)}>
+            {profile && o.province && <p className="text-sm text-[var(--color-fg-dim)]">Provincia del centro: {o.province}</p>}
             {o.evaluation && <div className="mb-5 space-y-3 text-sm">
               <p className="font-semibold text-[var(--color-degree-bright)]">{o.evaluation.score === null ? "Sin puntuación comparable" : `Afinidad orientativa: ${o.evaluation.score}/100`}</p>
               {o.evaluation.score !== null && <meter min={0} max={100} value={o.evaluation.score} aria-label="Afinidad orientativa" className="w-full" />}
@@ -109,10 +107,7 @@ export function DegreesWorkspace({ profile }: { profile?: OrientationProfile }) 
               {o.evaluation.reasons.length > 0 && <ul className="list-disc pl-5">{o.evaluation.reasons.map((reason) => <li key={reason}>{reason}</li>)}</ul>}
               <details><summary className="cursor-pointer underline">Qué falta comprobar</summary><ul className="mt-2 list-disc pl-5">{o.evaluation.pending.map((reason) => <li key={reason}>{reason}</li>)}</ul></details>
             </div>}
-            <button type="button" aria-pressed={ids.includes(o.id)} aria-label={`${ids.includes(o.id) ? "Quitar" : "Comparar"}: ${o.degree.name}, ${o.university.name}, ${o.center?.name ?? "centro sin especificar"}`} disabled={!ids.includes(o.id) && ids.length >= 3} onClick={() => toggle(o.id)} className="border border-[var(--color-degree-bright)] px-4 py-2 text-[var(--color-degree-bright)] disabled:opacity-40">
-              {ids.includes(o.id) ? "Quitar de la comparación" : "Añadir a la comparación"}
-            </button>
-          </article>)}
+          </OfferingCard>)}
         </div>
         {loading && <p role="status">Buscando ofertas…</p>}
         {error === requestKey && <p role="alert">{errorMessage} <button type="button" className="underline" onClick={() => setAttempt((n) => n + 1)}>Reintentar</button></p>}
