@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
   pgTable,
   uuid,
@@ -8,6 +9,8 @@ import {
   timestamp,
   jsonb,
   uniqueIndex,
+  primaryKey,
+  check,
 } from "drizzle-orm/pg-core";
 
 // UNIVERSIDADES
@@ -79,13 +82,47 @@ export const degreeOfferings = pgTable(
 
 // VERSIONES DE PLANES DE ESTUDIOS
 
+// PROGRAMAS CONJUNTOS: un programa agrupa varias titulaciones y centros.
+// No se representa como una oferta QEDU inventada.
+export const jointPrograms = pgTable(
+  "joint_programs",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    universityId: uuid("university_id")
+      .notNull()
+      .references(() => universities.id, { onDelete: "restrict" }),
+    name: varchar("name", { length: 255 }).notNull(),
+    sourceUrl: text("source_url").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+);
+
+export const jointProgramDegrees = pgTable(
+  "joint_program_degrees",
+  {
+    jointProgramId: uuid("joint_program_id")
+      .notNull()
+      .references(() => jointPrograms.id, { onDelete: "restrict" }),
+    degreeId: uuid("degree_id")
+      .notNull()
+      .references(() => degrees.id, { onDelete: "restrict" }),
+    academicCenterId: uuid("academic_center_id")
+      .notNull()
+      .references(() => academicCenters.id, { onDelete: "restrict" }),
+  },
+  (table) => [
+    primaryKey({ columns: [table.jointProgramId, table.degreeId, table.academicCenterId] }),
+  ],
+);
+
 export const studyPlans = pgTable(
   "study_plans",
   {
     id: uuid("id").defaultRandom().primaryKey(),
     degreeOfferingId: uuid("degree_offering_id")
-      .notNull()
       .references(() => degreeOfferings.id, { onDelete: "restrict" }),
+    jointProgramId: uuid("joint_program_id")
+      .references(() => jointPrograms.id, { onDelete: "restrict" }),
     officialCode: varchar("official_code", { length: 100 }),
     name: varchar("name", { length: 255 }).notNull(),
     implementationYear: integer("implementation_year"),
@@ -100,6 +137,14 @@ export const studyPlans = pgTable(
     uniqueIndex("study_plans_offering_code_unique").on(
       table.degreeOfferingId,
       table.officialCode
+    ),
+    uniqueIndex("study_plans_joint_program_code_unique").on(
+      table.jointProgramId,
+      table.officialCode
+    ),
+    check(
+      "study_plans_exactly_one_parent",
+      sql`num_nonnulls(${table.degreeOfferingId}, ${table.jointProgramId}) = 1`
     ),
   ]
 );
