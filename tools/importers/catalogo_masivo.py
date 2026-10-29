@@ -27,6 +27,7 @@ from pathlib import Path
 import re
 import subprocess
 import sys
+import tempfile
 import unicodedata
 from urllib.parse import urlparse, parse_qs
 from urllib.request import Request, urlopen
@@ -363,6 +364,7 @@ def build_sql(m, decisions):
         if len(matches)!=1:
             raise ValueError('Identidad de plan no es única en el manifiesto: '+str(d['plan_identifier']))
         p=matches[0]
+        statements.append(f"\\echo === Plan {len(applied)+1}/{len(decisions)} ===")
         offering=d['offering_id']
         uuid.UUID(offering)
         pid=str(uuid.uuid5(NAMESPACE, f'UNICAN|{offering}|{p["plan_identifier"]}|{COURSE}'))
@@ -473,12 +475,41 @@ def apply(args):
     print('BACKUP:',backup,flush=True)
     print('PLANES QUE SE INTENTARÁN IMPORTAR:',len(applied),flush=True)
     print('ASIGNATURAS:',sum(p['subjects'] for p in applied),flush=True)
-    subprocess.run(['psql',os.environ['DATABASE_URL'],'-X','-v','ON_ERROR_STOP=1','-q',
-                    '--single-transaction','-f','-'],input=sql,text=True,check=True)
-    write_json(DATA/f'applied-{stamp}.json',{'executed_at':now(),'plans':applied,
-        'manifest_sha256':sha((DATA/'manifest.json').read_bytes()),
-        'backup':str(backup)})
-    print('APLICACIÓN TRANSACCIONAL COMPLETADA; datos synthetic_* intactos.')
+
+    # No enviar varios megabytes por stdin: si psql procesa lentamente sus
+    # consultas, el pipe se llena y Python se bloquea al escribir.
+    # Guardar SQL con permiso 0600 y hacer que psql lo lea directamente.
+    run_dir = DATA / 'executions'
+    run_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
+    fd, sql_path = tempfile.mkstemp(prefix=f'uc-{stamp}-', suffix='.sql', dir=run_dir)
+    sql_file = Path(sql_path)
+    sql_bytes = sql.encode('utf-8')
+    try:
+        with os.fdopen(fd, 'wb') as fp:
+            fp.write(sql_bytes)
+            fp.flush()
+            os.fsync(fp.fileno())
+        sql_file.chmod(0o600)
+        print('SQL PREPARADO:', sql_file, f'({len(sql_bytes):,} bytes)', flush=True)
+        print('EJECUCIÓN ÚNICA TRANSACCIÓN: leyendo archivo, no pipe', flush=True)
+        # No se ejecutará ninguna orden COMMIT del SQL: psql --single-transaction
+        # es responsable de BEGIN/COMMIT. Ante error: ON_ERROR_STOP y rollback.
+        subprocess.run(['psql', os.environ['DATABASE_URL'], '-X',
+                        '-v', 'ON_ERROR_STOP=1', '-q', '--single-transaction',
+                        '-f', str(sql_file)], check=True)
+        write_json(DATA / f'applied-{stamp}.json', {
+            'executed_at': now(), 'plans': applied,
+            'manifest_sha256': sha((DATA/'manifest.json').read_bytes()),
+            'generated_sql_sha256': sha(sql_bytes),
+            'backup': str(backup)
+        })
+        sql_file.unlink()
+        print('APLICACIÓN TRANSACCIONAL COMPLETADA; datos synthetic_* intactos.', flush=True)
+    except BaseException:
+        print('EJECUCIÓN NO CERTIFICADA: comprobar PostgreSQL antes de reintentar.',
+              file=sys.stderr, flush=True)
+        print('SQL conservado para diagnóstico:', sql_file, file=sys.stderr, flush=True)
+        raise
 
 
 def coverage(_args):
