@@ -2,6 +2,21 @@
 "use client";
 
 import { useState } from "react";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
+  LineChart,
+  Line,
+} from "recharts";
 
 type Destino = {
   id: number;
@@ -173,17 +188,20 @@ export default function ErasmusPage() {
               const dentroPresupuesto =
                 destino.coste <= presupuesto;
               const ectsSuficientes = destino.ects >= ects;
+              const compatibilidadAcademica =
+                ects > 0
+                  ? Math.min(100, (destino.ects / ects) * 100)
+                  : 0;
               const seleccionado =
                 destinoElegido === destino.id;
 
               return (
                 <article
                   key={destino.id}
-                  className={`flex flex-col rounded-2xl border p-6 shadow-sm transition ${
-                    seleccionado
-                      ? "border-blue-600 ring-2 ring-blue-600"
-                      : "border-zinc-200 dark:border-zinc-800"
-                  }`}
+                  className={`flex flex-col rounded-2xl border p-6 shadow-sm transition ${seleccionado
+                    ? "border-blue-600 ring-2 ring-blue-600"
+                    : "border-zinc-200 dark:border-zinc-800"
+                    }`}
                 >
                   <p className="text-sm text-zinc-500">
                     {destino.pais}
@@ -222,6 +240,12 @@ export default function ErasmusPage() {
                         {destino.idioma} {destino.nivel}
                       </dd>
                     </div>
+                    <div className="flex justify-between gap-3">
+                      <dt>Compatibilidad académica</dt>
+                      <dd className="font-semibold">
+                        {compatibilidadAcademica.toFixed(0)} %
+                      </dd>
+                    </div>
                   </dl>
 
                   <div className="mt-6 space-y-2 text-sm">
@@ -256,11 +280,10 @@ export default function ErasmusPage() {
                       onClick={() =>
                         setDestinoElegido(destino.id)
                       }
-                      className={`w-full rounded-xl px-4 py-3 font-semibold transition ${
-                        seleccionado
-                          ? "bg-green-600 text-white"
-                          : "bg-zinc-900 text-white hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900"
-                      }`}
+                      className={`w-full rounded-xl px-4 py-3 font-semibold transition ${seleccionado
+                        ? "bg-green-600 text-white"
+                        : "bg-zinc-900 text-white hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900"
+                        }`}
                     >
                       {seleccionado
                         ? "✓ Destino seleccionado"
@@ -288,6 +311,233 @@ export default function ErasmusPage() {
               </p>
             </div>
           )}
+
+          {/* GRÁFICOS COMPARATIVOS */}
+          <div className="mt-10 space-y-8">
+            <div>
+              <h2 className="text-2xl font-semibold">
+                3. Comparación visual de destinos
+              </h2>
+              <p className="mt-2 text-sm text-zinc-500">
+                Analiza los indicadores de tus tres alternativas.
+              </p>
+            </div>
+
+            {/* GRÁFICO 1: BARRAS VERTICALES */}
+            <div className="rounded-2xl border border-zinc-200 p-6 dark:border-zinc-800">
+              <h3 className="mb-2 text-xl font-semibold">
+                Coste mensual neto
+              </h3>
+              <p className="mb-6 text-sm text-zinc-500">
+                Compara cuánto cuesta vivir en cada destino.
+              </p>
+
+              <div className="h-72 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={destinos.map((d) => ({
+                      ciudad: d.ciudad,
+                      coste: d.coste,
+                    }))}
+                    margin={{ top: 10, right: 20, left: 0, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="ciudad" />
+                    <YAxis unit=" €" />
+                    <Tooltip
+                      formatter={(value) => [`${value} €`, "Coste mensual"]}
+                    />
+                    <Bar
+                      dataKey="coste"
+                      fill="#3b82f6"
+                      radius={[8, 8, 0, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+
+              <p className="mt-3 text-sm text-zinc-500">
+                Cuanto menor sea la barra, más económico es el destino.
+              </p>
+            </div>
+
+            {/* GRÁFICO 2: CÍRCULOS DE COMPATIBILIDAD */}
+            <div className="rounded-2xl border border-zinc-200 p-6 dark:border-zinc-800">
+              <h3 className="mb-2 text-xl font-semibold">
+                Compatibilidad académica
+              </h3>
+              <p className="mb-6 text-sm text-zinc-500">
+                Porcentaje de tus ECTS deseados que podrías reconocer.
+              </p>
+
+              <div className="grid gap-6 md:grid-cols-3">
+                {destinos.map((destino) => {
+                  const reconocibles =
+                    ects > 0 ? Math.min(destino.ects, ects) : 0;
+
+                  const pendientes =
+                    ects > 0 ? Math.max(ects - destino.ects, 0) : 0;
+
+                  const porcentaje =
+                    ects > 0 ? (reconocibles / ects) * 100 : 0;
+
+                  const datosCirculo = [
+                    { name: "Reconocibles", value: reconocibles },
+                    { name: "Pendientes", value: pendientes },
+                  ];
+
+                  return (
+                    <div
+                      key={destino.id}
+                      className="rounded-xl bg-zinc-50 p-4 text-center dark:bg-zinc-900"
+                    >
+                      <h4 className="font-semibold">{destino.ciudad}</h4>
+
+                      <div className="h-52 w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie
+                              data={datosCirculo}
+                              dataKey="value"
+                              nameKey="name"
+                              cx="50%"
+                              cy="50%"
+                              innerRadius={48}
+                              outerRadius={75}
+                              paddingAngle={pendientes > 0 ? 2 : 0}
+                            >
+                              <Cell fill="#10b981" />
+                              <Cell fill="#e5e7eb" />
+                            </Pie>
+
+                            <Tooltip
+                              formatter={(value) => [`${value} ECTS`]}
+                            />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </div>
+
+                      <p className="text-3xl font-bold text-emerald-600">
+                        {porcentaje.toFixed(0)} %
+                      </p>
+
+                      <p className="mt-1 text-sm text-zinc-500">
+                        {reconocibles} de {ects} ECTS
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="mt-5 flex flex-wrap justify-center gap-6 text-sm">
+                <span className="flex items-center gap-2">
+                  <span className="h-3 w-3 rounded-full bg-emerald-500" />
+                  ECTS reconocibles
+                </span>
+
+                <span className="flex items-center gap-2">
+                  <span className="h-3 w-3 rounded-full bg-zinc-300" />
+                  ECTS pendientes
+                </span>
+              </div>
+            </div>
+
+
+            {/* GRÁFICO 3: MARGEN PRESUPUESTARIO */}
+            <div className="rounded-2xl border border-zinc-200 p-6 dark:border-zinc-800">
+              <h3 className="mb-2 text-xl font-semibold">
+                ¿Cuánto dinero te sobra o te falta?
+              </h3>
+
+              <p className="mb-6 text-sm text-zinc-500">
+                Comparación del coste de cada destino con tu presupuesto
+                mensual de {presupuesto} €.
+              </p>
+
+              <div className="space-y-7">
+                {destinos.map((destino) => {
+                  const margen = presupuesto - destino.coste;
+
+                  const margenMaximo = Math.max(
+                    ...destinos.map((d) =>
+                      Math.abs(presupuesto - d.coste)
+                    ),
+                    1
+                  );
+
+                  const porcentaje =
+                    (Math.abs(margen) / margenMaximo) * 100;
+
+                  return (
+                    <div key={destino.id} className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium">
+                          {destino.ciudad}
+                        </span>
+
+                        <span
+                          className={`font-bold ${margen >= 0
+                              ? "text-emerald-600 dark:text-emerald-400"
+                              : "text-red-600 dark:text-red-400"
+                            }`}
+                        >
+                          {margen > 0 ? "+" : ""}
+                          {margen} €/mes
+                        </span>
+                      </div>
+
+                      {/* Barras a ambos lados del cero */}
+                      <div className="flex h-7 items-stretch gap-1">
+                        {/* Lado izquierdo: déficit */}
+                        <div className="flex w-1/2 justify-end overflow-hidden rounded-l-lg bg-zinc-100 dark:bg-zinc-800">
+                          {margen < 0 && (
+                            <div
+                              className="h-full rounded-l-lg bg-red-500 transition-all duration-500"
+                              style={{ width: `${porcentaje}%` }}
+                            />
+                          )}
+                        </div>
+
+                        {/* Línea central: cero */}
+                        <div className="w-0.5 shrink-0 bg-zinc-500" />
+
+                        {/* Lado derecho: dinero sobrante */}
+                        <div className="w-1/2 overflow-hidden rounded-r-lg bg-zinc-100 dark:bg-zinc-800">
+                          {margen > 0 && (
+                            <div
+                              className="h-full rounded-r-lg bg-emerald-500 transition-all duration-500"
+                              style={{ width: `${porcentaje}%` }}
+                            />
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Leyenda */}
+              <div className="mt-6 flex items-center justify-between text-sm">
+                <span className="flex items-center gap-2 text-red-600 dark:text-red-400">
+                  <span className="h-3 w-3 rounded-full bg-red-500" />
+                  Falta dinero
+                </span>
+
+                <span className="text-zinc-500">0 €</span>
+
+                <span className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
+                  <span className="h-3 w-3 rounded-full bg-emerald-500" />
+                  Sobra dinero
+                </span>
+              </div>
+
+              <p className="mt-5 text-xs text-zinc-500">
+                Las barras representan la diferencia entre tu presupuesto
+                mensual y el coste estimado de cada destino. La escala se
+                ajusta al mayor margen absoluto mostrado.
+              </p>
+            </div>
+          </div>
         </section>
       )}
 
