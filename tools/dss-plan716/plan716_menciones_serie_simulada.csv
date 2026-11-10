@@ -1,0 +1,61 @@
+curso_eleccion_simulado,anio_entrada_simulado,codigo_mencion,mencion,estudiantes_sinteticos,total_estudiantes_sinteticos_curso,porcentaje_en_curso,procedencia
+2013-2014,2011,ESM6021,Computación,461,1450,31.793,simulacion_calibrada_con_fuentes_UNIZAR
+2013-2014,2011,ESM6020,Ingeniería del Software,286,1450,19.724,simulacion_calibrada_con_fuentes_UNIZAR
+2013-2014,2011,ESM6023,Sistemas de Información,247,1450,17.034,simulacion_calibrada_con_fuentes_UNIZAR
+2013-2014,2011,ESM6022,Ingeniería de Computadores,241,1450,16.621,simulacion_calibrada_con_fuentes_UNIZAR
+2013-2014,2011,ESM6024,Tecnologías de la Información,215,1450,14.828,simulacion_calibrada_con_fuentes_UNIZAR
+2014-2015,2012,ESM6021,Computación,459,1503,30.539,simulacion_calibrada_con_fuentes_UNIZAR
+2014-2015,2012,ESM6020,Ingeniería del Software,403,1503,26.813,simulacion_calibrada_con_fuentes_UNIZAR
+2014-2015,2012,ESM6023,Sistemas de Información,247,1503,16.434,simulacion_calibrada_con_fuentes_UNIZAR
+2014-2015,2012,ESM6022,Ingeniería de Computadores,205,1503,13.639,simulacion_calibrada_con_fuentes_UNIZAR
+2014-2015,2012,ESM6024,Tecnologías de la Información,189,1503,12.575,simulacion_calibrada_con_fuentes_UNIZAR
+2015-2016,2013,ESM6021,Computación,612,1592,38.442,simulacion_calibrada_con_fuentes_UNIZAR
+2015-2016,2013,ESM6020,Ingeniería del Software,333,1592,20.917,simulacion_calibrada_con_fuentes_UNIZAR
+2015-2016,2013,ESM6023,Sistemas de Información,226,1592,14.196,simulacion_calibrada_con_fuentes_UNIZAR
+2015-2016,2013,ESM6022,Ingeniería de Computadores,220,1592,13.819,simulacion_calibrada_con_fuentes_UNIZAR
+2015-2016,2013,ESM6024,Tecnologías de la Información,201,1592,12.626,simulacion_calibrada_con_fuentes_UNIZAR
+2016-2017,2014,ESM6021,Computación,471,1521,30.966,simulacion_calibrada_con_fuentes_UNIZAR
+2016-2017,2014,ESM6020,Ingeniería del Software,354,1521,23.274,simulacion_calibrada_con_fuentes_UNIZAR
+2016-2017,2014,ESM6023,Sistemas de Información,245,1521,16.108,simulacion_calibrada_con_fuentes_UNIZAR
+2016-2017,2014,ESM6022,Ingeniería de Computadores,206,1521,13.544,simulacion_calibrada_con_fuentes_UNIZAR
+2016-2017,2014,ESM6024,Tecnologías de la Información,245,1521,16.108,simulacion_calibrada_con_fuentes_UNIZAR
+2017-2018,2015,ESM6021,Computación,505,1574,32.084,simulacion_calibrada_con_fuentes_UNIZAR
+2017-2018,2015,ESM6020,Ingeniería del Software,345,1574,21.919,simulacion_calibrada_con_fuentes_UNIZAR
+2017-2018,2015,ESM6023,Sistemas de Información,275,1574,17.471,simulacion_calibrada_con_fuentes_UNIZAR
+2017-2018,2015,ESM6022,Ingeniería de Computadores,250,1574,15.883,simulacion_calibrada_con_fuentes_UNIZAR
+2017-2018,2015,ESM6024,Tecnologías de la Información,199,1574,12.643,simulacion_calibrada_con_fuentes_UNIZAR
+2018-2019,2016,ESM6021,Computación,535,1627,32.883,simulacion_calibrada_con_fuentes_UNIZAR
+2018-2019,2016,ESM6020,Ingeniería del Software,354,1627,21.758,simulacion_calibrada_con_fuentes_UNIZAR
+2018-2019,2016,ESM6023,Sistemas de Información,257,1627,15.796,simulacion_calibrada_con_fuentes_UNIZAR
+2018-2019,2016,ESM6022,Ingeniería de Computadores,257,1627,15.796,simulacion_calibrada_con_fuentes_UNIZAR
+2018-2019,2016,ESM6024,Tecnologías de la Información,224,1627,13.768,simulacion_calibrada_con_fuentes_UNIZAR
+2019-2020,2017,ESM6021,Computación,497,1591,31.238,simulacion_calibrada_con_fuentes_UNIZAR
+2019-2020,2017,ESM6020,Ingeniería del Software,400,1591,25.141,simulacion_calibrada_con_fuentes_UNIZAR
+2019-2020,2017,ESM6023,Sistemas de Información,266,1591,16.719,simulacion_calibrada_con_fuentes_UNIZAR
+2019-2020,2017,ESM6022,Ingeniería de Computadores,215,1591,13.514,simulacion_calibrada_con_fuentes_UNIZAR
+2019-2020,2017,ESM6024,Tecnologías de la Información,213,1591,13.388,simulacion_calibrada_con_fuentes_UNIZAR
+2020-2021,2018,ESM6021,Computación,564,1733,32.545,simulacion_calibrada_con_fuentes_UNIZAR
+2020-2021,2018,ESM6020,Ingeniería del Software,417,1733,24.062,simulacion_calibrada_con_fuentes_UNIZAR
+2020-2021,2018,ESM6023,Sistemas de Información,301,1733,17.369,simulacion_calibrada_con_fuentes_UNIZAR
+2020-2021,2018,ESM6022,Ingeniería de Computadores,233,1733,13.445,simulacion_calibrada_con_fuentes_UNIZAR
+2020-2021,2018,ESM6024,Tecnologías de la Información,218,1733,12.579,simulacion_calibrada_con_fuentes_UNIZAR
+2021-2022,2019,ESM6021,Computación,576,1751,32.895,simulacion_calibrada_con_fuentes_UNIZAR
+2021-2022,2019,ESM6020,Ingeniería del Software,385,1751,21.987,simulacion_calibrada_con_fuentes_UNIZAR
+2021-2022,2019,ESM6023,Sistemas de Información,279,1751,15.934,simulacion_calibrada_con_fuentes_UNIZAR
+2021-2022,2019,ESM6022,Ingeniería de Computadores,264,1751,15.077,simulacion_calibrada_con_fuentes_UNIZAR
+2021-2022,2019,ESM6024,Tecnologías de la Información,247,1751,14.106,simulacion_calibrada_con_fuentes_UNIZAR
+2022-2023,2020,ESM6021,Computación,556,1945,28.586,simulacion_calibrada_con_fuentes_UNIZAR
+2022-2023,2020,ESM6020,Ingeniería del Software,517,1945,26.581,simulacion_calibrada_con_fuentes_UNIZAR
+2022-2023,2020,ESM6023,Sistemas de Información,332,1945,17.069,simulacion_calibrada_con_fuentes_UNIZAR
+2022-2023,2020,ESM6022,Ingeniería de Computadores,290,1945,14.91,simulacion_calibrada_con_fuentes_UNIZAR
+2022-2023,2020,ESM6024,Tecnologías de la Información,250,1945,12.853,simulacion_calibrada_con_fuentes_UNIZAR
+2023-2024,2021,ESM6021,Computación,569,1768,32.183,simulacion_calibrada_con_fuentes_UNIZAR
+2023-2024,2021,ESM6020,Ingeniería del Software,391,1768,22.115,simulacion_calibrada_con_fuentes_UNIZAR
+2023-2024,2021,ESM6023,Sistemas de Información,298,1768,16.855,simulacion_calibrada_con_fuentes_UNIZAR
+2023-2024,2021,ESM6022,Ingeniería de Computadores,249,1768,14.084,simulacion_calibrada_con_fuentes_UNIZAR
+2023-2024,2021,ESM6024,Tecnologías de la Información,261,1768,14.762,simulacion_calibrada_con_fuentes_UNIZAR
+2024-2025,2022,ESM6021,Computación,610,1945,31.362,simulacion_calibrada_con_fuentes_UNIZAR
+2024-2025,2022,ESM6020,Ingeniería del Software,421,1945,21.645,simulacion_calibrada_con_fuentes_UNIZAR
+2024-2025,2022,ESM6023,Sistemas de Información,284,1945,14.602,simulacion_calibrada_con_fuentes_UNIZAR
+2024-2025,2022,ESM6022,Ingeniería de Computadores,313,1945,16.093,simulacion_calibrada_con_fuentes_UNIZAR
+2024-2025,2022,ESM6024,Tecnologías de la Información,317,1945,16.298,simulacion_calibrada_con_fuentes_UNIZAR

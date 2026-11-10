@@ -1,0 +1,35 @@
+{
+  "version": "2026-11-09.v1",
+  "plan_code": "716",
+  "academic_course": "2026-2027",
+  "university": "Universidad de Zaragoza",
+  "center": "Escuela de Ingeniería y Arquitectura",
+  "catalog_source": "https://estudios.unizar.es/estudio/asignaturas?anyo_academico=2026&centro_id=110&estudio_id=20260148&plan_id_nk=716",
+  "study_plan_source": "https://titulaciones.unizar.es/estudio/ver?anyo_academico=2026&id=148",
+  "official_academic_results_source": "https://estudios.unizar.es/informe/ver?anyo=2024&estudio_id=20240148&sort=-objetivo",
+  "official_academic_results_course": "2024-2025",
+  "ects_distribution": {"basic":60,"mandatory":102,"mention_specialization":48,"other_optional":18,"final_project":12,"total":240},
+  "offered_status_note": "Las asignaturas visibles en el catálogo no implican necesariamente matrícula habilitada; consultar la columna de situación. 30260 consta como No ofertada.",
+  "mention_codes": {
+    "ESM6021": {"name":"Computación","codes":["30229","30230","30231","30232","30233","30234","30260","30261","30262","30263"], "source":"https://estudios.unizar.es/estudio/asignaturas-itinerario?anyo_academico=2026&centro_id=110&estudio_id=20260148&itinerario_id_nk=ESM6021&plan_id_nk=716"},
+    "ESM6022": {"name":"Ingeniería de Computadores","codes":["30237","30238","30239"], "source":"https://estudios.unizar.es/estudio/asignaturas-itinerario?anyo_academico=2026&centro_id=110&estudio_id=20260148&itinerario_id_nk=ESM6022&plan_id_nk=716", "warning":"Solo tres asignaturas aparecen en la vista oficial consultada; no inferir que bastan para completar los 48 ECTS de mención."},
+    "ESM6023": {"name":"Sistemas de Información","codes":["30250","30251","30252","30253","30254","30255","30256","30264","30266"], "source":"https://estudios.unizar.es/estudio/asignaturas-itinerario?anyo_academico=2026&centro_id=110&estudio_id=20260148&itinerario_id_nk=ESM6023&plan_id_nk=716"},
+    "ESM6024": {"name":"Tecnologías de la Información","codes":["30250","30252","30257","30238","30239","30246","30254","30256","30258"], "source":"https://estudios.unizar.es/estudio/asignaturas-itinerario?anyo_academico=2026&centro_id=110&estudio_id=20260148&itinerario_id_nk=ESM6024&plan_id_nk=716"},
+    "ESM6020": {"name":"Ingeniería del Software","codes":["30243","30244","30245","30246","30248","30254","30249","30256","30259"], "source":"https://estudios.unizar.es/estudio/asignaturas-itinerario?anyo_academico=2026&centro_id=110&estudio_id=20260148&itinerario_id_nk=ESM6020&plan_id_nk=716"}
+  },
+  "official_grade_counts_2024_2025_eina": {
+    "30229":[5,3,23,5,2,0], "30230":[5,3,3,13,2,1], "30231":[6,4,16,8,2,1],
+    "30232":[1,0,18,13,11,0], "30233":[4,2,20,18,8,0], "30234":[10,3,7,18,11,2],
+    "30237":[0,0,5,11,2,0], "30238":[0,2,15,8,1,0], "30239":[0,0,16,12,2,0],
+    "30243":[1,0,3,13,13,1], "30244":[0,0,8,18,3,2], "30245":[0,0,0,26,10,1],
+    "30246":[0,0,13,21,10,1], "30248":[1,0,4,17,4,1], "30249":[0,2,2,11,3,1],
+    "30250":[2,2,23,21,1,0], "30251":[0,0,13,22,1,1], "30252":[0,0,1,41,3,1],
+    "30253":[1,2,3,11,1,0], "30254":[0,0,23,16,5,1], "30255":[2,0,1,9,2,1],
+    "30256":[1,0,5,25,19,0], "30257":[3,0,5,10,3,1], "30258":[1,0,2,14,1,1],
+    "30259":[0,0,2,5,2,0], "30260":[0,0,1,13,6,0], "30261":[0,0,2,17,8,2],
+    "30262":[5,0,6,6,7,0], "30263":[1,2,1,16,11,6], "30264":[0,0,4,3,0,0],
+    "30266":[0,0,2,3,4,1]
+  },
+  "grade_count_order": ["not_presented","failed","pass","merit","distinction","honours"],
+  "critical_data_rule": "Estos conteos oficiales agregados no son notas individuales. La simulación derivada jamás se puede mostrar como microdato real. Los cursos históricos de estudiantes sintéticos son hipótesis, no registros de alumnado de UNIZAR."
+}
