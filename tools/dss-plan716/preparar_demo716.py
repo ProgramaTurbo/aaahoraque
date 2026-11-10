@@ -72,7 +72,7 @@ def execute_psql(query: str, *, use_file=False, transaction=False) -> str:
     if "sslmode" in options:
         env["PGSSLMODE"] = options["sslmode"]
 
-    env["PGCONNECT_TIMEOUT"] = "10" 
+    env["PGCONNECT_TIMEOUT"] = "10"
     cmd = ['psql','-X','-v','ON_ERROR_STOP=1','-P','pager=off']
     if transaction:
         cmd += ['--single-transaction']
