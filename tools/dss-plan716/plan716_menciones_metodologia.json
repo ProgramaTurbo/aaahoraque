@@ -1,0 +1,55 @@
+{
+  "tipo": "PROPUESTA / NO CARGADA EN BD",
+  "total_estudiantes_sinteticos": 20000,
+  "total_filas": 60,
+  "seed": 71620261109,
+  "recuento_menciones_oficial_solo_2024_2025": {
+    "ESM6021": {
+      "nombre": "Computación",
+      "estudiantes": 38
+    },
+    "ESM6020": {
+      "nombre": "Ingeniería del Software",
+      "estudiantes": 26
+    },
+    "ESM6023": {
+      "nombre": "Sistemas de Información",
+      "estudiantes": 19
+    },
+    "ESM6022": {
+      "nombre": "Ingeniería de Computadores",
+      "estudiantes": 17
+    },
+    "ESM6024": {
+      "nombre": "Tecnologías de la Información",
+      "estudiantes": 16
+    }
+  },
+  "nuevos_ingresos_oficiales_por_anio": {
+    "2011": 82,
+    "2012": 85,
+    "2013": 90,
+    "2014": 86,
+    "2015": 89,
+    "2016": 92,
+    "2017": 90,
+    "2018": 98,
+    "2019": 99,
+    "2020": 110,
+    "2021": 100,
+    "2022": 110
+  },
+  "supuestos": [
+    "Los datos por mención publicados para 2024/2025 se usan como ponderaciones, no como historial real anual.",
+    "El tamaño relativo de cada cohorte sintética sigue los nuevos ingresos históricos al grado, multiplicados hasta 20.000.",
+    "Se añade variación anual sintética moderada de las ponderaciones; no hay evolución real conocida por mención.",
+    "Se considera que se elige mención al empezar el tercer curso (año de entrada + 2).",
+    "Los datos observados de 2024/25 pertenecen a la titulación antes de la adaptación al plan 716 en 2026/27.",
+    "El estudiante DEMO716-ESTUDIANTE sigue sin mención y NO está incluido entre los 20.000.",
+    "No modificar student.mention_code a mano: hay que regenerar conjuntamente estudiantes y sus resultados."
+  ],
+  "fuentes": {
+    "recuento_menciones_2024_2025": "https://webdiis.unizar.es/~silarri/coordinadorGrado/DOCS/ConsejosParaElegirUnaEspecialidad_2026.pdf",
+    "evolucion_nuevo_ingreso": "https://titulaciones.unizar.es/informe/globales?estudio_id=20260148"
+  }
+}
