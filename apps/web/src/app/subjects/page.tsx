@@ -1,6 +1,11 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { getSubjectUniversities, getSubjectPlans, getPlanSubjects } from "@/lib/subjects/catalog";
+import {
+  getDefaultSubjectDemoContext,
+  getSubjectUniversities,
+  getSubjectPlans,
+  getPlanSubjects,
+} from "@/lib/subjects/catalog";
 import { SubjectsWorkspace } from "@/features/subjects/subjects-workspace";
 
 export const dynamic = "force-dynamic";
@@ -17,12 +22,17 @@ export default async function SubjectsPage({ searchParams }: { searchParams: Sea
   const context = await (async () => {
     try {
       const universities = await getSubjectUniversities();
-      const selectedUniversity = universities.find((u) => u.id === params.university);
+      const isInitialVisit = !params.university && !params.plan;
+      const demo = isInitialVisit ? await getDefaultSubjectDemoContext() : null;
+      const universityId = params.university ?? demo?.universityId;
+      const selectedUniversity = universities.find((u) => u.id === universityId);
       const plans = selectedUniversity ? await getSubjectPlans(selectedUniversity.id) : [];
-      const selectedPlan = plans.find((p) => p.id === params.plan);
+      const planId = params.plan ?? (isInitialVisit ? demo?.planId : undefined);
+      const selectedPlan = plans.find((p) => p.id === planId);
       const subjects = selectedPlan ? await getPlanSubjects(selectedPlan.id) : [];
       return { universities, selectedUniversity, plans, selectedPlan, subjects };
-    } catch {
+    } catch (error) {
+      console.error("[SUBJECTS] Error al cargar el catálogo:", error);
       return null;
     }
   })();
@@ -60,6 +70,15 @@ export default async function SubjectsPage({ searchParams }: { searchParams: Sea
             Conoce tu plan académico, organiza tu expediente y compara alternativas. Tú decides; AAAhoraQue aporta estructura y transparencia.
           </p>
         </header>
+
+          <section aria-label="Acceso directo a la demostración" className="mb-12 grid items-center gap-5 border border-[var(--color-subjects)]/35 bg-[var(--color-subjects)]/[0.06] p-6 md:grid-cols-[minmax(0,1fr)_auto] md:p-8">
+            <div>
+              <span className="section-marker section-marker-subjects">DEMO INSTANTÁNEA · SIN FORMULARIOS</span>
+              <h2 className="font-display mt-3 text-2xl md:text-3xl">OBSERVA LOS DATOS. DECIDE TÚ.</h2>
+              <p className="mt-3 max-w-2xl text-sm leading-relaxed text-[var(--color-fg-dim)]">Estudiante ficticio con primero y segundo aprobados. Investiga 40 optativas reales del plan 716 de Ingeniería Informática de UNIZAR, con gráficos y estadísticas sintéticas identificadas.</p>
+            </div>
+            <Link href="/subjects/demo" className="inline-flex min-h-12 items-center justify-center whitespace-nowrap bg-[var(--color-subjects)] px-7 py-4 font-heading text-sm font-bold text-[#07151b] transition hover:brightness-110">PROBAR DEMO →</Link>
+          </section>
 
         <section aria-label="Seleccionar contexto académico" className="mb-12 grid gap-5 border-y border-[var(--color-border)] py-8 lg:grid-cols-2">
           <form action="/subjects" method="GET" className="space-y-3">
