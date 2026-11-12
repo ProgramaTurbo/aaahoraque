@@ -1,4 +1,12 @@
+export type DegreeQeduData = {
+  academicYear: string | null;
+  values: number[];
+  universityTypes: string[];
+  centerTypes: string[];
+  foreignLanguage: boolean | null;
+};
 export type DegreeSummary = {
+  cutoff?: DegreeQeduData;
   province?: string | null; evaluation?: OrientationEvaluation;
   id: string;
   modality: string | null;

@@ -16,19 +16,19 @@ function ScoreBar({ result, label, color = colors[0] }: { result: ChartValue; la
   </div>;
 }
 
-export function PageResultCharts({ offerings, page, activeCriteria }: { offerings: DegreeSummary[]; page: number; activeCriteria?: string[] }) {
+export function PageResultCharts({ offerings, area, activeCriteria }: { offerings: DegreeSummary[]; area: string; activeCriteria?: string[] }) {
   const [detailId, setDetailId] = useState<string | null>(null);
   const detail = offerings.find((o) => o.id === detailId) ?? offerings[0];
-  if (!detail) return <p className={panel}>No hay ofertas en esta página para representar.</p>;
+  if (!detail) return <p className={panel}>No hay ofertas en esta área para representar.</p>;
   const rows = pageChartRows(offerings);
-  return <section aria-label="Gráficas de la página de resultados" className="space-y-5">
+  return <section aria-label="Gráficas de las ofertas recomendadas" className="space-y-5">
     <header>
       <h3 className="text-2xl font-semibold">Tus resultados, de un vistazo</h3>
-      <p className="mt-2 text-sm text-[var(--color-fg-dim)]">Solo las {offerings.length} ofertas de la página {page}. Escala 0–100; no representa probabilidad de éxito ni de admisión.</p>
+      <p className="mt-2 text-sm text-[var(--color-fg-dim)]">Solo las {offerings.length} ofertas recomendadas de {area}. Escala 0–100; no representa probabilidad de éxito ni de admisión.</p>
     </header>
     <div className="grid gap-5 lg:grid-cols-2">
       <figure className={panel}>
-        <figcaption className="text-lg font-semibold">Ranking visual · página {page}</figcaption>
+        <figcaption className="text-lg font-semibold">Ranking visual · {area}</figcaption>
         <p className="mt-2 text-sm text-[var(--color-fg-dim)]">Orden del motor. Las puntuaciones iguales son empates. Las ofertas sin puntuación no se consideran peores.</p>
         <p aria-hidden="true" className="mt-4 flex justify-between font-mono text-xs text-[var(--color-fg-dim)]"><span>0</span><span>50</span><span>100</span></p>
         <ul className="mt-4 space-y-5">
@@ -67,7 +67,7 @@ export function SelectedOfferingsChart({ offerings, activeCriteria }: { offering
   ];
   return <figure className={panel}>
     <figcaption className="text-xl font-semibold">Comparación visual de tus {offerings.length} ofertas</figcaption>
-    <p className="mt-2 text-sm text-[var(--color-fg-dim)]">Solo las ofertas seleccionadas, aunque procedan de páginas diferentes. Todas las barras usan la misma escala 0–100.</p>
+    <p className="mt-2 text-sm text-[var(--color-fg-dim)]">Solo las ofertas seleccionadas. Todas las barras usan la misma escala 0–100.</p>
     <ul className="mt-5 grid gap-4 md:grid-cols-3">{offerings.map((o, index) => <li key={o.id} className="min-w-0 border-l-4 pl-3" style={{ borderColor: colors[index] }}>
       <p className="font-semibold">{String.fromCharCode(65 + index)} · {o.degree.name}</p><p className="mt-1 text-sm text-[var(--color-fg-dim)]">{o.university.name} · {o.center?.name ?? "Centro sin especificar"}</p>
     </li>)}</ul>

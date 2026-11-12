@@ -86,3 +86,40 @@ def test_catalog_modality_labels_and_ambiguous_labels():
     assert result["alternatives"][0]["id"] == "known"
     assert result["alternatives"][0]["score"] == 100
     assert result["alternatives"][1]["score"] is None
+
+
+def test_numeric_area_adapter_preserves_direct_interest_and_legacy_contract():
+    result = run({"area_interest_scores": {"technology": 100, "science": 75},
+                  "calculation_version": "orientation-profile-v2"})
+    tech = next(item for item in result["alternatives"] if item["id"] == "tech")
+    assert tech["score"] == 100
+    assert result["area_interest_scores"]["technology"] == 100
+    assert result["area_interest_scores"]["science"] == 75
+
+
+def test_numeric_zero_is_valid_and_missing_area_is_unknown():
+    result = run({"area_interest_scores": {"technology": 0}})
+    assert next(item for item in result["alternatives"] if item["id"] == "tech")["score"] == 0
+    assert next(item for item in result["alternatives"] if item["id"] == "health")["score"] is None
+
+
+def test_empty_numeric_adapter_does_not_fall_back_to_old_pair_scores():
+    result = run({"area_interest_scores": {}, "interests": {"technology": "like"},
+                  "interest_choices": {"technology:arts": "A"}})
+    assert result["active_criteria"] == []
+    assert all(item["score"] is None for item in result["alternatives"])
+
+
+def test_numeric_adapter_preserves_mandatory_constraints_at_zero_weight():
+    result = run({"area_interest_scores": {"technology": 75, "health": 100},
+                  "mobility": "require_province", "origin_province": "Zaragoza",
+                  "priorities": {"interests": 1, "location": 0, "modality": 0}})
+    assert result["excluded"] == 1
+    assert {item["id"] for item in result["alternatives"]} == {"tech", "unknown"}
+
+
+def test_numeric_adapter_rejects_invalid_scores():
+    import pytest
+    for score in [-1, 101, float("nan"), float("inf")]:
+        with pytest.raises(ValueError):
+            run({"area_interest_scores": {"technology": score}})

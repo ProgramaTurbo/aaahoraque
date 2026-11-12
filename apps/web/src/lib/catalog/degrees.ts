@@ -1,5 +1,6 @@
 import "server-only";
-import { and, asc, eq, ilike, or } from "drizzle-orm";
+import { and, asc, eq, ilike, or, sql } from "drizzle-orm";
+import type { DegreeQeduData } from "@/features/degrees/types";
 import { db } from "@/lib/db";
 import { universities, academicCenters, degrees, degreeOfferings, studyPlans, subjects } from "@/lib/db/schema";
 
@@ -49,4 +50,41 @@ export async function getOrientationCandidates() {
     .innerJoin(degrees, eq(degreeOfferings.degreeId, degrees.id))
     .leftJoin(academicCenters, eq(degreeOfferings.academicCenterId, academicCenters.id))
     .orderBy(asc(degreeOfferings.id));
+}
+
+export async function getDegreeCutoffs(offeringIds: string[]) {
+  if (offeringIds.length === 0) return new Map();
+  const rows = await db.execute<{ offering_id: string; academic_year: string | null; cutoff: string | null; university_type: string | null; center_type: string | null; foreign_language: boolean }>(sql`
+    WITH latest AS (
+      SELECT DISTINCT ON (m.degree_offering_id)
+        m.id, m.degree_offering_id, m.foreign_language, b.reference_academic_year
+      FROM qedu_offering_mappings m
+      INNER JOIN catalog_import_batches b ON b.id = m.batch_id
+      WHERE m.degree_offering_id IN (${sql.join(offeringIds.map((id) => sql`${id}::uuid`), sql`, `)})
+      ORDER BY m.degree_offering_id, b.imported_at DESC, m.id
+    )
+    SELECT DISTINCT l.degree_offering_id AS offering_id, l.reference_academic_year AS academic_year,
+      r.raw_data ->> 'Nota de corte' AS cutoff,
+      r.raw_data ->> 'Tipo de universidad' AS university_type,
+      r.raw_data ->> 'Tipo de centro' AS center_type, l.foreign_language
+    FROM latest l
+    INNER JOIN qedu_offering_rows q ON q.mapping_id = l.id
+    INNER JOIN catalog_import_rows r ON r.id = q.import_row_id
+  `);
+  const byOffering = new Map<string, DegreeQeduData>();
+  for (const row of rows) {
+    const raw = row.cutoff?.trim().replace(",", ".");
+    const entry = byOffering.get(row.offering_id) ?? {
+      academicYear: row.academic_year, values: [], universityTypes: [], centerTypes: [],
+      foreignLanguage: row.foreign_language,
+    };
+    const value = raw && /^\d+(\.\d+)?$/.test(raw) ? Number(raw) : null;
+    if (value !== null && value <= 14 && !entry.values.includes(value)) entry.values.push(value);
+    const universityType = row.university_type?.trim();
+    const centerType = row.center_type?.trim();
+    if (universityType && !entry.universityTypes.includes(universityType)) entry.universityTypes.push(universityType);
+    if (centerType && !entry.centerTypes.includes(centerType)) entry.centerTypes.push(centerType);
+    byOffering.set(row.offering_id, entry);
+  }
+  return byOffering;
 }
