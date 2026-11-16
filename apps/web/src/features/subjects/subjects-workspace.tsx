@@ -4,8 +4,9 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { saveSubjectProgress } from "@/app/subjects/account-actions";
 import { normalizeSearch } from "./catalog-search";
+import { decisionPath } from "@/lib/subjects/decision";
 import { accountPath } from "@/lib/account/paths";
-import { emptySubjectPreferences, normalizeSubjectPreferences, type SubjectPreferenceField, type SubjectProgress, type SubjectTab } from "@/lib/subjects/progress";
+import { emptySubjectPreferences, normalizeSubjectPreferences, preferenceLabels, type SubjectPreferenceField, type SubjectProgress, type SubjectTab } from "@/lib/subjects/progress";
 
 type Subject = {
   id: string;
@@ -29,6 +30,7 @@ type Props = {
   subjects: Subject[];
   signedIn: boolean;
   initialTab: SubjectTab;
+  initialRecordYear?: string;
   initialProgress: SubjectProgress | null;
   onDirtyChange: (dirty: boolean) => void;
   returnTo: string;
@@ -36,19 +38,19 @@ type Props = {
 
 type Field = SubjectPreferenceField;
 
-const learning: { key: Field; label: string; help: string }[] = [
-  { key: "theory_preference", label: "Fundamentos teóricos", help: "Interés por modelos, conceptos y explicación teórica." },
-  { key: "practice_preference", label: "Aplicación práctica", help: "Preferencia por ejercicios y aplicación de conocimientos." },
-  { key: "project_preference", label: "Proyectos", help: "Interés por desarrollar soluciones completas." },
-  { key: "teamwork_preference", label: "Trabajo colaborativo", help: "Preferencia por actividades en equipo." },
-  { key: "difficulty_tolerance", label: "Exigencia académica asumible", help: "Nivel de dificultad que consideras adecuado para ti." },
-  { key: "workload_tolerance", label: "Dedicación asumible", help: "Carga que puedes compaginar con tu situación." },
+const learning: { key: Field; help: string }[] = [
+  { key: "theory_preference", help: "Interés por modelos, conceptos y explicación teórica." },
+  { key: "practice_preference", help: "Preferencia por ejercicios y aplicación de conocimientos." },
+  { key: "project_preference", help: "Interés por desarrollar soluciones completas." },
+  { key: "teamwork_preference", help: "Preferencia por actividades en equipo." },
+  { key: "difficulty_tolerance", help: "Nivel de dificultad que consideras adecuado para ti." },
+  { key: "workload_tolerance", help: "Carga que puedes compaginar con tu situación." },
 ];
-const priorities: { key: Field; label: string; help: string }[] = [
-  { key: "academic_affinity", label: "Afinidad académica", help: "Importancia del interés por la materia." },
-  { key: "professional_alignment", label: "Proyección profesional", help: "Importancia de su relación con tus objetivos profesionales." },
-  { key: "learning_compatibility", label: "Forma de aprender", help: "Importancia del método de aprendizaje." },
-  { key: "effort_compatibility", label: "Esfuerzo", help: "Importancia del ajuste con tu disponibilidad." },
+const priorities: { key: Field; help: string }[] = [
+  { key: "academic_affinity", help: "Importancia del interés por la materia." },
+  { key: "professional_alignment", help: "Importancia de su relación con tus objetivos profesionales." },
+  { key: "learning_compatibility", help: "Importancia del método de aprendizaje." },
+  { key: "effort_compatibility", help: "Importancia del ajuste con tu disponibilidad." },
 ];
 const fields = [...learning, ...priorities];
 const format = new Intl.NumberFormat("es-ES", { maximumFractionDigits: 2 });
@@ -79,9 +81,10 @@ function readLocalPreferences(key: string) {
 
 export function SubjectsWorkspace({
   planId, planName, degreeName, centerName, totalEcts, status, subjects,
-  signedIn, initialTab, initialProgress, onDirtyChange, returnTo,
+  signedIn, initialTab, initialRecordYear, initialProgress, onDirtyChange, returnTo,
 }: Props) {
   const [tab, setTab] = useState<SubjectTab>(initialTab);
+  const [lastEdited, setLastEdited] = useState<"expediente" | "preferencias" | undefined>();
   const allowedIds = useMemo(() => new Set(subjects.map((s) => s.id)), [subjects]);
   const [completed, setCompleted] = useState(() => initialProgress?.completed.filter((id) => allowedIds.has(id)) ?? []);
   const [shortlist, setShortlist] = useState(() => initialProgress?.shortlist.filter((id) => allowedIds.has(id)) ?? []);
@@ -100,43 +103,37 @@ export function SubjectsWorkspace({
   const registerHref = accountPath("/registro", returnPath);
 
   const completedIds = useMemo(() => new Set(completed), [completed]);
-  const selectedIds = useMemo(() => new Set(shortlist), [shortlist]);
   const earnedCredits = subjects.reduce((sum, s) => sum + (completedIds.has(s.id) ? s.ects : 0), 0);
-  const selectedSubjects = shortlist.flatMap((id) => {
-    const item = subjects.find((s) => s.id === id);
-    return item ? [item] : [];
-  });
   function matchesSubject(subject: Subject, query: string) {
     const name = normalizeSearch(`${subject.name} ${subject.code ?? ""}`);
     return normalizeSearch(query).split(/\s+/).every((word) => name.includes(word));
   }
   const [recordTerm, setRecordTerm] = useState("");
+  const [recordYear, setRecordYear] = useState(initialRecordYear ?? "todos");
   const [recordStatus, setRecordStatus] = useState("all");
   const filtered = subjects.filter((s) => matchesSubject(s, term) &&
     (year === "todos" || String(s.year) === year) && (type === "todos" || s.type === type));
   const recordSubjects = subjects.filter((s) => matchesSubject(s, recordTerm) &&
+    (recordYear === "todos" || String(s.year ?? "sin-curso") === recordYear) &&
     (recordStatus === "all" || completedIds.has(s.id) === (recordStatus === "completed")));
   const years = [...new Set(subjects.map((s) => s.year))].sort((a, b) => (a ?? 99) - (b ?? 99));
   const types = [...new Set(subjects.map((s) => s.type).filter((x): x is string => x !== null))].sort();
   const totalPriority = priorities.reduce((sum, p) => sum + (preferences[p.key] ?? 0), 0);
   const filled = fields.filter((f) => preferences[f.key] !== null).length;
 
-  function markEdited() {
+  function markEdited(section: "expediente" | "preferencias") {
+    setLastEdited(section);
     setDirty(true);
     if (canSave) onDirtyChange(true);
     setFeedback(undefined);
   }
   function toggleCompleted(id: string) {
     setCompleted(completedIds.has(id) ? completed.filter((x) => x !== id) : [...completed, id]);
-    markEdited();
-  }
-  function toggleShortlist(id: string) {
-    setShortlist(selectedIds.has(id) ? shortlist.filter((x) => x !== id) : [...shortlist, id].slice(0, 3));
-    markEdited();
+    markEdited("expediente");
   }
   function updatePreference(field: Field, value: number | null) {
     setPreferences({ ...preferences, [field]: value });
-    markEdited();
+    markEdited("preferencias");
   }
   function importLocalProgress() {
     const localCompleted = readIds(`aaahoraque:academic-state:${planId}`, allowedIds);
@@ -149,15 +146,14 @@ export function SubjectsWorkspace({
     setCompleted(localCompleted);
     setShortlist(localShortlist);
     setPreferences(localPreferences);
-    setDirty(true);
-    onDirtyChange(true);
+    markEdited(tab === "preferencias" ? "preferencias" : "expediente");
     setFeedback({ error: false, text: "Revisa los datos importados y pulsa Guardar progreso para añadirlos a tu cuenta." });
   }
   async function save() {
     setPending(true);
     setFeedback(undefined);
     try {
-      const result = await saveSubjectProgress(planId, { completed, shortlist, preferences, version });
+      const result = await saveSubjectProgress(planId, { completed, shortlist, preferences, version }, lastEdited);
       if ("error" in result) setFeedback({ error: true, text: result.error });
       else {
         setVersion(result.version);
@@ -175,19 +171,18 @@ export function SubjectsWorkspace({
     { id: "catalogo", title: "Asignaturas" },
     { id: "expediente", title: "Mi expediente" },
     { id: "preferencias", title: "Mis prioridades" },
-    { id: "comparar", title: `Comparar (${shortlist.length})` },
   ];
 
-  function scoreField(field: { key: Field; label: string; help: string }) {
+  function scoreField(field: { key: Field; help: string }) {
     return (
       <label key={field.key} className="flex flex-col gap-4 border-b border-[var(--color-border)] py-5 md:flex-row md:items-center md:justify-between">
         <span className="max-w-xl">
-          <span className="block font-heading text-base text-[var(--color-fg)]">{field.label}</span>
+          <span className="block font-heading text-base text-[var(--color-fg)]">{preferenceLabels[field.key]}</span>
           <span className="mt-1 block text-sm text-[var(--color-fg-dim)]">{field.help}</span>
         </span>
         <select
           className="min-w-36 border border-control-border bg-bg-card px-4 py-3 text-[var(--color-fg)] focus:border-subjects focus:outline-2 focus:outline-offset-2 focus:outline-subjects"
-          aria-label={field.label}
+          aria-label={preferenceLabels[field.key]}
           value={preferences[field.key] ?? ""}
           disabled={pending}
           onChange={(event) => updatePreference(field.key, event.target.value === "" ? null : Number(event.target.value))}
@@ -227,11 +222,13 @@ export function SubjectsWorkspace({
               <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
                 <div>
                   <h3 className="text-xl font-semibold">Asignaturas del plan</h3>
-                  <p className="mt-2 text-sm text-[var(--color-fg-dim)]">Busca y filtra asignaturas. Puedes seleccionar hasta tres para compararlas.</p>
+                  <p className="mt-2 text-sm text-[var(--color-fg-dim)]">Busca y filtra las asignaturas del plan.</p>
                 </div>
-                <button type="button" onClick={() => setTab("comparar")} className="border border-[var(--color-subjects)] px-5 py-3 text-sm font-semibold text-[var(--color-subjects)] hover:bg-[var(--color-subjects)]/10">
-                  Ver comparación ({shortlist.length}) →
-                </button>
+                {!synthetic && <Link href={decisionPath(planId)} onNavigate={(event) => {
+                  if (dirty && canSave && !window.confirm("Tienes cambios sin guardar. ¿Quieres salir igualmente?")) event.preventDefault();
+                }} className="rounded-lg bg-subjects-fill px-4 py-2.5 text-sm font-semibold text-subjects-on-fill hover:bg-subjects-fill-hover">
+                  Abrir ayuda a la decisión →
+                </Link>}
               </div>
               <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_160px_180px]">
                 <label className="sr-only" htmlFor="subjects-search">Buscar asignaturas</label>
@@ -247,7 +244,7 @@ export function SubjectsWorkspace({
                   {types.map((t) => <option key={t} value={t}>{subjectType(t)}</option>)}
                 </select>
               </div>
-              <p className="font-mono text-xs text-[var(--color-muted)]">{filtered.length} ASIGNATURAS · {shortlist.length}/3 EN COMPARACIÓN</p>
+              <p className="font-mono text-xs text-[var(--color-muted)]">{filtered.length} asignaturas</p>
               <div className="divide-y divide-[var(--color-border)]">
                 {filtered.map((s) => (
                   <article key={s.id} className="grid gap-3 py-5 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
@@ -255,10 +252,7 @@ export function SubjectsWorkspace({
                       <p className="font-heading text-lg leading-snug">{s.name}</p>
                       <p className="mt-2 text-xs text-[var(--color-fg-dim)]">{s.year === null ? "Curso sin especificar" : `${s.year}.º curso`} · {subjectType(s.type)} · {semesterLabel(s.semester)} · {format.format(s.ects)} ECTS{s.code ? ` · ${s.code}` : ""}</p>
                     </div>
-                    <button type="button" onClick={() => toggleShortlist(s.id)} disabled={pending || (!selectedIds.has(s.id) && shortlist.length >= 3)}
-                      className={`min-h-11 border px-4 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-35 ${selectedIds.has(s.id) ? "border-[var(--color-subjects)] bg-[var(--color-subjects)]/15 text-[var(--color-subjects)]" : "border-[var(--color-border-light)] text-[var(--color-fg-dim)] hover:border-[var(--color-subjects)]"}`}>
-                      {selectedIds.has(s.id) ? "✓ Seleccionada" : "Comparar +"}
-                    </button>
+
                   </article>
                 ))}
                 {filtered.length === 0 && <p className="py-10 text-[var(--color-fg-dim)]">No hay asignaturas que coincidan con esos filtros.</p>}
@@ -288,10 +282,17 @@ export function SubjectsWorkspace({
                 <div className="border border-[var(--color-border-light)] p-5"><p className="text-3xl font-display text-[var(--color-subjects)]">{completed.length}</p><p className="mt-2 text-sm text-[var(--color-fg-dim)]">Asignaturas superadas declaradas</p></div>
                 <div className="border border-[var(--color-border-light)] p-5"><p className="text-3xl font-display text-[var(--color-subjects)]">{format.format(earnedCredits)}</p><p className="mt-2 text-sm text-[var(--color-fg-dim)]">ECTS declarados como superados</p></div>
               </div>
-              <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_12rem]">
+              <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_11rem_11rem]">
                 <input type="search" aria-label="Buscar en mi expediente" placeholder="Buscar por nombre o código"
                   value={recordTerm} onChange={(event) => setRecordTerm(event.target.value)}
                   className="min-h-11 rounded-lg border border-control-border bg-bg-darker px-3 text-sm" />
+                <select aria-label="Curso en el expediente" value={recordYear} onChange={(event) => setRecordYear(event.target.value)}
+                  className="min-h-11 rounded-lg border border-control-border bg-bg-darker px-3 text-sm">
+                  <option value="todos">Todos los cursos</option>
+                  {years.map((item) => <option key={item ?? "sin-curso"} value={item ?? "sin-curso"}>
+                    {item === null ? "Sin curso asignado" : `${item}.º curso`}
+                  </option>)}
+                </select>
                 <select aria-label="Estado en el expediente" value={recordStatus} onChange={(event) => setRecordStatus(event.target.value)}
                   className="min-h-11 rounded-lg border border-control-border bg-[var(--color-bg-darker)] px-3 text-sm">
                   <option value="all">Todas</option>
@@ -334,7 +335,7 @@ export function SubjectsWorkspace({
                   <div className="mt-6 grid gap-3 sm:grid-cols-2">
                     {priorities.map((p) => (
                       <div key={p.key} className="border border-[var(--color-border-light)] p-4">
-                        <p className="text-sm text-[var(--color-fg-dim)]">{p.label}</p>
+                        <p className="text-sm text-[var(--color-fg-dim)]">{preferenceLabels[p.key]}</p>
                         <p className="mt-2 font-display text-2xl text-[var(--color-subjects)]">{format.format(((preferences[p.key] ?? 0) / totalPriority) * 100)} %</p>
                       </div>
                     ))}
@@ -345,38 +346,6 @@ export function SubjectsWorkspace({
             </div>
           )}
 
-          {tab === "comparar" && (
-            <div className="space-y-7">
-              <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
-                <div>
-                  <h3 className="text-xl font-semibold">Comparación de asignaturas</h3>
-                  <p className="mt-3 text-sm text-[var(--color-fg-dim)]">Consulta en paralelo los créditos, el tipo y el periodo de cada asignatura.</p>
-                </div>
-                <button type="button" onClick={() => setTab("catalogo")} className="border border-[var(--color-subjects)] px-5 py-3 text-sm text-[var(--color-subjects)] hover:bg-[var(--color-subjects)]/10">Elegir asignaturas →</button>
-              </div>
-              {selectedSubjects.length === 0 ? (
-                <div className="border border-dashed border-[var(--color-border-light)] px-6 py-12 text-center text-[var(--color-fg-dim)]">Aún no has seleccionado alternativas. Vuelve a «Explorar» y añade hasta tres asignaturas.</div>
-              ) : (
-                <div className="grid gap-4 md:grid-cols-3">
-                  {selectedSubjects.map((s) => (
-                    <article key={s.id} className="flex flex-col border border-control-border bg-bg-card p-5">
-                      <h4 className="mt-3 min-h-16 font-display text-xl leading-snug">{s.name}</h4>
-                      <dl className="mt-5 flex-1 divide-y divide-[var(--color-border)] text-sm">
-                        {[
-                          ["ECTS", format.format(s.ects)], ["Curso", s.year == null ? "No especificado" : String(s.year)],
-                          ["Tipo", subjectType(s.type)], ["Periodo", semesterLabel(s.semester)],
-                          ["Situación", completedIds.has(s.id) ? "Superada (declarado)" : "No indicada como superada"],
-                        ].map(([label, value]) => <div key={label} className="flex justify-between gap-3 py-3"><dt className="text-[var(--color-fg-dim)]">{label}</dt><dd className="text-right">{value}</dd></div>)}
-                      </dl>
-                      <button type="button" onClick={() => toggleShortlist(s.id)} disabled={pending} className="mt-4 border border-[var(--color-border-light)] px-4 py-2 text-xs text-[var(--color-fg-dim)] hover:border-[var(--color-subjects)]">Quitar de la comparación</button>
-                    </article>
-                  ))}
-                </div>
-              )}
-              {!signedIn && !synthetic && <p className="text-sm">Tu selección es temporal. <Link href={loginHref} className="underline">Inicia sesión</Link> para crear y guardar tus comparaciones.</p>}
-              {shortlist.length > 0 && <p className="text-sm text-[var(--color-fg-dim)]">La comparación se basa en los datos disponibles del catálogo.</p>}
-            </div>
-          )}
         </div>
       {canSave && <div className="fixed inset-x-0 bottom-0 z-40 border-t border-control-border bg-bg-card pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_24px_#120a201a]">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-5 py-3 md:px-9">

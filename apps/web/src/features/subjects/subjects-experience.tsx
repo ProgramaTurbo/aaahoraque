@@ -99,7 +99,7 @@ export function SubjectsExperience({ universities, plans, universityId, currentP
         </div>
       </> : <p className="text-sm text-[var(--color-fg-dim)]">El catálogo de esta base de datos aún no contiene universidades con planes disponibles.</p>}
     </section>
-    {workspace ? <SubjectsWorkspace key={workspace.planId} {...workspace} onDirtyChange={(changed) => setDirtyPlan(changed ? activePlan : undefined)} />
+    {workspace ? <SubjectsWorkspace key={`${workspace.planId}:${workspace.initialTab}:${workspace.initialRecordYear ?? ""}`} {...workspace} onDirtyChange={(changed) => setDirtyPlan(changed ? activePlan : undefined)} />
       : universities.length > 0 && <p className="rounded-xl border border-dashed border-border-light px-5 py-8 text-center text-[var(--color-fg-dim)]">
         {universityId ? "Elige una titulación o plan para ver sus asignaturas." : "Empieza escribiendo el nombre de tu universidad."}
       </p>}

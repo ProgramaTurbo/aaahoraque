@@ -14,6 +14,9 @@ export async function saveProfile(_previous: string, formData: FormData): Promis
 
   const name = String(formData.get("displayName") ?? "").trim();
   const stage = String(formData.get("academicStage") ?? "");
+  const goal = String(formData.get("decisionGoal") ?? "");
+  const decisionGoal = goal === "degree" || goal === "subjects" || goal === "erasmus" ? goal : null;
+  if (goal && !decisionGoal) return "Revisa tu objetivo académico.";
   const languages: Language[] = [];
   const names = new Set<string>();
   if (name.length > 80 || (stage && !stageOptions.has(stage))) return "Revisa los datos del perfil.";
@@ -32,10 +35,11 @@ export async function saveProfile(_previous: string, formData: FormData): Promis
 
   const values = {
     displayName: name || null,
+    decisionGoal,
     academicStage: stage ? stage as typeof academicStages[number] : null,
     languages,
     updatedAt: new Date(),
-  };
+  } satisfies Partial<typeof studentProfiles.$inferInsert>;
   try {
     await db.insert(studentProfiles).values({ userId: user.id, ...values })
       .onConflictDoUpdate({ target: studentProfiles.userId, set: values });

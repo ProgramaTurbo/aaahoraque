@@ -106,6 +106,8 @@ export async function getPlanSubjects(planId: string) {
       s.academic_year,
       s.semester,
       s.subject_type,
+      s.source_url,
+      s.metadata,
       s.estimated_difficulty,
       s.estimated_workload
     FROM subjects s
@@ -128,6 +130,8 @@ export async function getPlanSubjects(planId: string) {
     year: row.academic_year === null ? null : Number(row.academic_year),
     semester: row.semester ? String(row.semester) : null,
     type: row.subject_type ? String(row.subject_type) : null,
+    sourceUrl: typeof row.source_url === "string" ? row.source_url : null,
+    knownUnavailable: isKnownUnavailable(row.metadata),
     // Estos dos campos son NULL en las asignaturas oficiales auditadas.
     // No se convierten en cero ni se estiman desde datos sintéticos.
     difficulty: row.estimated_difficulty === null
@@ -137,4 +141,11 @@ export async function getPlanSubjects(planId: string) {
       ? null
       : Number(row.estimated_workload),
   }));
+}
+
+function isKnownUnavailable(metadata: unknown) {
+  if (!metadata || typeof metadata !== "object") return false;
+  const { occurrences } = metadata as { occurrences?: unknown };
+  return Array.isArray(occurrences) && occurrences.length > 0 &&
+    occurrences.every((occurrence) => occurrence?.offer_status === "not_offered");
 }

@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { decisionPath } from "@/lib/subjects/decision";
 import type { Metadata } from "next";
 import {
   getSubjectUniversities,
@@ -16,7 +18,7 @@ export const metadata: Metadata = {
   description: "Explora tu plan, declara las asignaturas superadas y compara alternativas con información académica trazable.",
 };
 
-type SearchParams = Promise<{ university?: string; plan?: string; section?: string; buscar?: string }>;
+type SearchParams = Promise<{ university?: string; plan?: string; section?: string; buscar?: string; curso?: string }>;
 
 export default async function SubjectsPage({ searchParams }: { searchParams: SearchParams }) {
   const params = await searchParams;
@@ -59,9 +61,13 @@ export default async function SubjectsPage({ searchParams }: { searchParams: Sea
   }
   const { universities, selectedUniversity, plans, selectedPlan, subjects, progress, currentPlanId } = context;
 
+  if (params.section === "comparar" && selectedPlan?.status === "official") redirect(decisionPath(selectedPlan.id));
+  const initialRecordYear = subjects.some((subject) => String(subject.year ?? "sin-curso") === params.curso) ? params.curso : undefined;
+
   const workspace = selectedPlan && selectedUniversity ? {
     signedIn: Boolean(user),
     initialTab: subjectTab(params.section),
+    initialRecordYear,
     initialProgress: progress,
     returnTo: subjectsPlanPath({ id: selectedPlan.id, universityId: selectedUniversity.id }),
     planId: selectedPlan.id,

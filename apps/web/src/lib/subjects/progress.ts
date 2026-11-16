@@ -1,7 +1,7 @@
-export type SubjectTab = "catalogo" | "expediente" | "preferencias" | "comparar";
+export type SubjectTab = "catalogo" | "expediente" | "preferencias";
 
 export function subjectTab(value: unknown): SubjectTab {
-  return value === "expediente" || value === "preferencias" || value === "comparar" ? value : "catalogo";
+  return value === "expediente" || value === "preferencias" ? value : "catalogo";
 }
 
 export const subjectPreferenceFields = [
@@ -36,3 +36,16 @@ export function normalizeSubjectPreferences(value: unknown) {
   }
   return result;
 }
+
+export const preferenceLabels: Record<SubjectPreferenceField, string> = {
+  theory_preference: "Fundamentos teóricos",
+  practice_preference: "Aplicación práctica",
+  project_preference: "Proyectos",
+  teamwork_preference: "Trabajo colaborativo",
+  difficulty_tolerance: "Exigencia académica asumible",
+  workload_tolerance: "Dedicación asumible",
+  academic_affinity: "Afinidad académica",
+  professional_alignment: "Proyección profesional",
+  learning_compatibility: "Forma de aprender",
+  effort_compatibility: "Esfuerzo",
+};

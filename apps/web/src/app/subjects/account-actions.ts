@@ -17,7 +17,7 @@ function validIds(value: unknown, limit: number): value is string[] {
     new Set(value).size === value.length;
 }
 
-export async function saveSubjectProgress(planId: string, input: SubjectProgress): Promise<SaveResult> {
+export async function saveSubjectProgress(planId: string, input: SubjectProgress, section?: string): Promise<SaveResult> {
   const user = await getAccountUser().catch(() => null);
   if (!user) return { error: "La sesión ha caducado. Vuelve a iniciar sesión." };
   if (!input || !Number.isInteger(input.version) || input.version < 0 || input.version >= 2_147_483_647 ||
@@ -37,6 +37,8 @@ export async function saveSubjectProgress(planId: string, input: SubjectProgress
       completed: input.completed,
       shortlist: input.shortlist,
       preferences: normalizeSubjectPreferences(input.preferences),
+      lastSection: section === "preferencias" ? "preferencias" as const
+        : section === "expediente" ? "expediente" as const : undefined,
       version: input.version + 1,
       updatedAt: new Date(),
     };

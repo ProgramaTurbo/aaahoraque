@@ -1,121 +1,190 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getAccountUser } from "@/lib/account/session";
-import { getOfficialPlanContext, getSavedPlanSummaries, getStudentProfile, subjectsPlanPath } from "@/lib/account/profile";
 import { ProfileForm } from "@/features/account/profile-form";
 import { RemoveCurrentPlan } from "@/features/account/remove-current-plan";
+import { Favorites } from "@/features/panel/favorites";
+import { getFavorites } from "@/lib/account/favorites";
+import { getOfficialPlanContext, getSavedPlanProgress, getPlansWithSavedProgress, getStudentProfile, subjectsPlanPath } from "@/lib/account/profile";
+import { getAccountUser } from "@/lib/account/session";
+import { getPlanSubjects } from "@/lib/subjects/catalog";
+import { creditsFormat, decisionPath, periodNames, selectionCredits } from "@/lib/subjects/decision";
 import { subjectPreferenceFields } from "@/lib/subjects/progress";
+import { getDecisionPlans, getMostRecentDecision } from "@/lib/subjects/student-decisions";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Mi panel · AAAhoraQue" };
 
-const card = "rounded-2xl border border-border bg-[var(--color-bg-card)] p-5 sm:p-7";
-const smallLink = "rounded-lg border border-control-border px-3 py-2 text-sm font-semibold hover:bg-bg-card-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-subjects";
-const number = new Intl.NumberFormat("es-ES", { maximumFractionDigits: 2 });
+const card = "scroll-mt-32 rounded-2xl border border-border bg-bg-card p-5 sm:p-6";
+const button = "inline-block rounded-lg border border-control-border px-3 py-2 text-sm font-semibold hover:bg-bg-card-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-subjects";
+const primary = "inline-block rounded-lg bg-subjects-fill px-4 py-2.5 text-sm font-semibold text-subjects-on-fill hover:bg-subjects-fill-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-subjects";
+const muted = "text-sm text-[var(--color-fg-dim)]";
 const date = new Intl.DateTimeFormat("es-ES", { dateStyle: "medium", timeZone: "Europe/Madrid" });
+
+const sections = [
+  ["continuar", "Continuar"], ["expediente", "Mi expediente"], ["semestre", "Próximo semestre"],
+  ["escenarios", "Mis escenarios"], ["favoritos", "Favoritos"], ["pasos", "Próximos pasos"],
+];
 
 export default async function PanelPage() {
   const user = await getAccountUser();
   if (!user) redirect("/login?next=%2Fpanel");
 
-  const [profile, savedPlans] = await Promise.all([getStudentProfile(user.id), getSavedPlanSummaries(user.id)]);
+  const [profile, savedPlans, lastDecision, favorites] = await Promise.all([
+    getStudentProfile(user.id), getPlansWithSavedProgress(user.id), getMostRecentDecision(user.id), getFavorites(user.id),
+  ]);
   const currentId = profile?.currentStudyPlanId;
   const current = currentId ? savedPlans.find((plan) => plan.id === currentId) ?? await getOfficialPlanContext(currentId) : null;
-  const lastSaved = savedPlans[0];
-  const resume = current ?? lastSaved;
-  const activeProgress = resume ? savedPlans.find((plan) => plan.id === resume.id) : undefined;
-  const credits = activeProgress?.earnedCredits ?? 0;
-  const total = resume ? Number(resume.totalEcts) : 0;
-  const metrics = [
-    { label: "ECTS superados", value: total > 0 ? `${number.format(credits)} / ${number.format(total)}` : number.format(credits) },
-    { label: "Asignaturas superadas", value: activeProgress?.completedCount ?? 0 },
-    { label: "Prioridades respondidas", value: `${activeProgress?.answered ?? 0} / ${subjectPreferenceFields.length}` },
-    { label: "Asignaturas en comparación", value: activeProgress?.alternatives.length ?? 0 },
+  const latest = savedPlans[0];
+  const lastDecisionPlan = lastDecision
+    ? [current, ...savedPlans].find((plan) => plan?.id === lastDecision.planId) ?? await getOfficialPlanContext(lastDecision.planId)
+    : null;
+  const recordPlan = current ?? latest ?? lastDecisionPlan;
+  const [catalog, record, decisions] = recordPlan ? await Promise.all([
+    getPlanSubjects(recordPlan.id), getSavedPlanProgress(user.id, recordPlan.id), getDecisionPlans(user.id, recordPlan.id),
+  ]) : [[], null, []] as const;
+  const draft = decisions.find((item) => item.kind === "draft");
+  const scenarios = decisions.filter((item) => item.kind === "scenario");
+  const latestDecision = lastDecision && (!latest || lastDecision.updatedAt >= latest.updatedAt) ? lastDecision : null;
+  const resume = latestDecision && lastDecisionPlan ? {
+    title: latestDecision.kind === "draft" ? "Borrador del semestre" : latestDecision.name ?? "Escenario",
+    plan: lastDecisionPlan.degreeName, updatedAt: latestDecision.updatedAt,
+    href: latestDecision.kind === "draft" ? decisionPath(lastDecisionPlan.id, "semestre") : decisionPath(lastDecisionPlan.id, "escenarios", latestDecision.id),
+  } : latest ? {
+    title: latest.lastSection === "preferencias" ? "Mis prioridades" : "Mi expediente",
+    plan: latest.degreeName, updatedAt: latest.updatedAt,
+    href: subjectsPlanPath(latest, latest.lastSection ?? "expediente"),
+  } : null;
+  const completed = new Set(record?.completed ?? []);
+  const earned = selectionCredits(catalog.filter((subject) => completed.has(subject.id)));
+  const courseYears = [...new Set(catalog.map((subject) => subject.year))].sort((a, b) => (a ?? Infinity) - (b ?? Infinity));
+  const preferenceCount = record ? Object.values(record.preferences).filter((value) => value !== null).length : 0;
+  const goal = profile?.decisionGoal;
+  const steps = [
+    ...(goal === "degree" ? [{ title: "Explora titulaciones que te interesen", href: "/degrees" }] : []),
+    ...(goal === "erasmus" ? [{ title: "Consulta las opciones de movilidad", href: "/erasmus" }] : []),
+    ...(!current ? [{ title: "Elige tu plan actual", href: "/subjects?buscar=1" }] : []),
+    ...(recordPlan && !completed.size ? [{ title: "Revisa y guarda tu expediente", href: subjectsPlanPath(recordPlan, "expediente") }] : []),
+    ...(recordPlan && preferenceCount < subjectPreferenceFields.length ? [{ title: "Completa las prioridades de tu plan", href: subjectsPlanPath(recordPlan, "preferencias") }] : []),
+    ...(recordPlan && !draft?.subjectIds.length ? [{ title: "Prepara tu próximo semestre", href: decisionPath(recordPlan.id, "semestre") }] : []),
+    ...(recordPlan && draft?.subjectIds.length && !scenarios.length ? [{ title: "Guarda una alternativa al borrador", href: decisionPath(recordPlan.id, "escenarios") }] : []),
   ];
 
-  return (
-    <div className="mx-auto max-w-7xl space-y-7 px-5 py-8 md:px-9 md:py-12">
-      <header className="flex flex-wrap items-end justify-between gap-5">
-        <div>
-          <p className="mb-2 text-sm font-semibold text-accent-bright">Mi panel</p>
-          <h1 className="font-display text-4xl leading-none md:text-5xl">Hola, {profile?.displayName ?? user.name}</h1>
-        </div>
-        <a href="#perfil" className={smallLink}>Editar mi perfil</a>
-      </header>
+  return <div className="mx-auto max-w-7xl space-y-6 px-5 py-8 md:px-9 md:py-12">
+    <header className="flex flex-wrap items-end justify-between gap-4">
+      <div>
+        <p className="mb-2 text-sm font-semibold text-accent-bright">Mi panel</p>
+        <h1 className="font-display text-4xl md:text-5xl">Hola, {profile?.displayName ?? user.name}</h1>
+      </div>
+      <a href="#perfil" className={button}>Editar perfil</a>
+    </header>
 
-      <section aria-labelledby="academic-panel-title" className="rounded-2xl border border-subjects-border bg-panel-start bg-linear-to-br from-panel-start to-panel-end text-fg p-5 sm:p-7">
-        <h2 id="academic-panel-title" className="text-xl font-semibold">{current ? "Mi plan actual" : resume ? "Último plan guardado" : "Mi espacio académico"}</h2>
-        {resume ? <>
-          <div className="mt-4 flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <h3 className="text-2xl font-semibold">{resume.degreeName}</h3>
-              <p className="mt-1.5 text-sm text-[var(--color-fg-dim)]">{[resume.universityName, resume.name === resume.degreeName ? null : resume.name].filter(Boolean).join(" · ")}</p>
-            </div>
-            <Link href={subjectsPlanPath(resume)} className="rounded-lg bg-subjects-fill px-4 py-2.5 text-sm font-semibold text-subjects-on-fill hover:bg-subjects-fill-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-subjects">Continuar en Asignaturas →</Link>
-          </div>
-          <dl className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
-            {metrics.map((metric) => <div key={metric.label} className="rounded-xl border border-border bg-bg-card p-3 sm:p-4">
-              <dt className="text-xs text-[var(--color-fg-dim)] sm:text-sm">{metric.label}</dt>
-              <dd className="mt-1 text-2xl font-semibold tabular-nums">{metric.value}</dd>
-            </div>)}
-          </dl>
-          {total > 0 && <progress aria-label="ECTS declarados respecto al total del plan" max={total} value={Math.min(total, credits)}
-            className="mt-4 h-2 w-full accent-subjects-fill" />}
-          <p className="mt-2 text-xs text-[var(--color-fg-dim)]">El progreso se calcula con las asignaturas que has marcado como superadas.</p>
-          <div className="mt-5 flex flex-wrap gap-2">
-            <Link href={subjectsPlanPath(resume, "expediente")} className={smallLink}>Mi expediente</Link>
-            <Link href={subjectsPlanPath(resume, "preferencias")} className={smallLink}>Mis prioridades</Link>
-            <Link href={subjectsPlanPath(resume, "comparar")} className={smallLink}>Mi comparación</Link>
-            <Link href="/subjects?buscar=1" className={smallLink}>Buscar otro plan</Link>
-          </div>
-        </> : <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
-          <p className="max-w-lg text-[var(--color-fg-dim)]">Busca tu titulación para elegir un plan y empezar a guardar tu expediente.</p>
-          <Link className="rounded-lg bg-subjects-fill px-4 py-2.5 text-sm font-semibold text-subjects-on-fill hover:bg-subjects-fill-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-subjects" href="/subjects">Buscar mi plan →</Link>
-        </div>}
+    <section aria-labelledby="current-plan-title" className="space-y-4 rounded-2xl border border-subjects-border bg-linear-to-br from-panel-start to-panel-end p-5 text-fg sm:p-7">
+      <h2 id="current-plan-title" className="text-sm font-semibold text-subjects">Mi plan actual</h2>
+      {current ? <>
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div><h3 className="text-2xl font-semibold">{current.degreeName}</h3>
+            <p className={`${muted} mt-1`}>{[current.universityName, current.name === current.degreeName ? null : current.name].filter(Boolean).join(" · ")}</p></div>
+          <Link href={decisionPath(current.id)} className={primary}>Abrir ayuda a la decisión →</Link>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Link href={subjectsPlanPath(current, "expediente")} className={button}>Actualizar expediente</Link>
+          <Link href={subjectsPlanPath(current, "preferencias")} className={button}>Actualizar prioridades</Link>
+          <Link href="/subjects?buscar=1" className={button}>Cambiar de plan</Link>
+        </div>
+      </> : <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className={muted}>Marca un plan oficial como actual para tener a mano su expediente y su ayuda a la decisión.</p>
+        <Link href="/subjects?buscar=1" className={primary}>Buscar mi plan</Link>
+      </div>}
+    </section>
+
+    <nav aria-label="Secciones del panel" className="flex flex-wrap gap-2">
+      {sections.map(([id, label]) => <a key={id} className={button} href={`#${id}`}>{label}</a>)}
+    </nav>
+
+    <div className="grid gap-5 lg:grid-cols-2">
+      <section id="continuar" className={card}>
+        <h2 className="text-xl font-semibold">Continuar</h2>
+        {resume ? <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+          <div><p className="font-semibold">{resume.title}</p>
+            <p className={muted}>{resume.plan} · {date.format(resume.updatedAt)}</p></div>
+          <Link href={resume.href} className={button}>Retomar</Link>
+        </div> : <p className={`${muted} mt-3`}>Aquí podrás retomar tu último expediente, prioridades, borrador o escenario guardado.</p>}
       </section>
 
-      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
-        <section aria-labelledby="saved-plans-title" className={card}>
-          <h2 id="saved-plans-title" className="text-xl font-semibold">Planes con progreso guardado</h2>
-          {savedPlans.length > 0 ? <ul className="mt-4 divide-y divide-border">
-            {savedPlans.map((plan) => <li key={plan.id} className="flex flex-wrap items-center justify-between gap-3 py-4">
-              <div>
-                <p className="font-semibold">{plan.degreeName}</p>
-                <p className="mt-1 text-sm text-[var(--color-fg-dim)]">{plan.universityName} · {plan.name}</p>
-                <p className="mt-1 text-xs text-[var(--color-fg-dim)]">{plan.completedCount} superadas · {plan.alternatives.length} en comparación · {date.format(plan.updatedAt)}</p>
-              </div>
-              <Link href={subjectsPlanPath(plan)} className={smallLink}>Abrir plan</Link>
-            </li>)}
-          </ul> : <p className="mt-3 text-sm text-[var(--color-fg-dim)]">Aquí aparecerán los planes cuando guardes cambios en Asignaturas.</p>}
-        </section>
-        <section aria-labelledby="comparison-panel-title" className={card}>
-          <h2 id="comparison-panel-title" className="text-xl font-semibold">Mi comparación</h2>
-          {activeProgress?.alternatives.length ? <ul className="mt-3 divide-y divide-border">
-            {activeProgress.alternatives.map((subject) => <li key={subject.id} className="flex justify-between gap-4 py-3 text-sm">
-              <span>{subject.name}</span><span className="shrink-0 text-subjects">{number.format(Number(subject.ects))} ECTS</span>
-            </li>)}
-          </ul> : <p className="mt-3 text-sm text-[var(--color-fg-dim)]">Añade asignaturas a la comparación y guarda tu selección.</p>}
-          {resume && <Link href={subjectsPlanPath(resume, "comparar")} className="mt-4 inline-block text-sm font-semibold text-subjects underline">Ir a la comparación →</Link>}
-        </section>
-      </div>
+      <section id="pasos" className={card}>
+        <h2 className="text-xl font-semibold">Próximos pasos</h2>
+        <ul className="mt-3 space-y-2 text-sm">
+          {steps.slice(0, 3).map((step) => <li key={step.href}><Link href={step.href} className="font-semibold text-subjects underline underline-offset-2">{step.title} →</Link></li>)}
+          {!goal && <li><a href="#perfil" className="font-semibold text-subjects underline underline-offset-2">Indica qué decisión quieres preparar →</a></li>}
+        </ul>
+        {steps.length === 0 && goal && <p className={muted}>Tu expediente, tus prioridades y tu planificación están configurados.</p>}
+      </section>
 
-      <nav aria-label="Más herramientas" className="grid gap-3 sm:grid-cols-2">
-        <Link href="/degrees" className={`${card} border-l-degree hover:bg-bg-card-hover`}>
-          <span className="font-semibold">Carreras →</span><span className="mt-1 block text-sm text-[var(--color-fg-dim)]">Explora y compara titulaciones.</span>
-        </Link>
-        <Link href="/erasmus" className={`${card} border-l-emerald-400/60 hover:bg-bg-card-hover`}>
-          <span className="font-semibold">Erasmus →</span><span className="mt-1 block text-sm text-[var(--color-fg-dim)]">Compara tus opciones de movilidad.</span>
-        </Link>
-      </nav>
-
-      <section id="perfil" aria-labelledby="profile-panel-title" className={`${card} scroll-mt-32 space-y-5`}>
-        <div>
-          <h2 id="profile-panel-title" className="text-xl font-semibold">Mi perfil</h2>
-          <p className="mt-1 text-sm text-[var(--color-fg-dim)]">{user.email}</p>
+      <section id="expediente" className={`${card} lg:row-span-2`}>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-xl font-semibold">Mi expediente</h2>
+          {recordPlan && <Link href={subjectsPlanPath(recordPlan, "expediente")} className={button}>Editar expediente</Link>}
         </div>
-        <ProfileForm name={profile?.displayName ?? user.name} stage={profile?.academicStage ?? ""} languages={profile?.languages ?? []} />
-        {current && <div className="border-t border-border pt-3"><RemoveCurrentPlan /></div>}
+        {recordPlan ? <>
+          <p className={`${muted} mt-2`}>{recordPlan.degreeName} · {creditsFormat.format(earned)} de {creditsFormat.format(Number(recordPlan.totalEcts))} ECTS declarados como superados</p>
+          {Number(recordPlan.totalEcts) > 0 && <progress className="mt-3 h-2 w-full accent-subjects-fill"
+            aria-label="ECTS declarados como superados" max={Number(recordPlan.totalEcts)} value={Math.min(earned, Number(recordPlan.totalEcts))} />}
+          {courseYears.length === 0 && <p className={`${muted} mt-3`}>Este plan aún no tiene asignaturas publicadas en el catálogo.</p>}
+          <div className="mt-4 divide-y divide-border">
+            {courseYears.map((year) => {
+              const items = catalog.filter((item) => item.year === year);
+              const passed = items.filter((item) => completed.has(item.id));
+              return <details className="py-2" key={year ?? "unknown"}>
+                <summary className="cursor-pointer text-sm font-semibold">{year ? `Curso ${year}` : "Curso sin indicar"}
+                  <span className={`ml-2 font-normal ${muted}`}>{passed.length} de {items.length} superadas · {creditsFormat.format(selectionCredits(passed))} ECTS</span></summary>
+                <ul className="mt-2 space-y-1 text-sm">
+                  {items.map((item) => <li key={item.id} className="flex flex-wrap justify-between gap-2">
+                    <span>{item.name}</span><span className={muted}>{completed.has(item.id) ? "Superada" : "Sin marcar"}</span>
+                  </li>)}
+                </ul>
+                <Link href={subjectsPlanPath(recordPlan, "expediente", year === null ? "sin-curso" : String(year))}
+                  className={`${button} mt-3`}>Editar este curso</Link>
+              </details>;
+            })}
+          </div>
+        </> : <p className={`${muted} mt-3`}>Elige un plan oficial para consultar el expediente por curso.</p>}
+        {savedPlans.some((plan) => plan.id !== recordPlan?.id) && <details className="mt-4 border-t border-border pt-3">
+          <summary className="cursor-pointer text-sm font-semibold">Expedientes de otros planes</summary>
+          <ul className="mt-2 space-y-2 text-sm">
+            {savedPlans.filter((plan) => plan.id !== recordPlan?.id).map((plan) => <li key={plan.id}>
+              <Link href={subjectsPlanPath(plan, "expediente")} className="font-semibold text-subjects underline">{plan.degreeName} · {plan.name}</Link>
+            </li>)}
+          </ul>
+        </details>}
+      </section>
+
+      <section id="semestre" className={card}>
+        <h2 className="text-xl font-semibold">Próximo semestre</h2>
+        {draft ? <p className={`${muted} mt-2`}>{periodNames[draft.period]} · {creditsFormat.format(selectionCredits(catalog.filter((item) => draft.subjectIds.includes(item.id))))} de {draft.target} ECTS previstos</p>
+          : <p className={`${muted} mt-2`}>Elige el periodo, fija tu objetivo de ECTS y guarda una propuesta para tu próxima matrícula.</p>}
+        {recordPlan && <Link href={decisionPath(recordPlan.id, "semestre")} className={`${button} mt-3`}>{draft ? "Abrir borrador" : "Preparar semestre"}</Link>}
+      </section>
+
+      <section id="escenarios" className={card}>
+        <h2 className="text-xl font-semibold">Mis escenarios</h2>
+        {scenarios.length ? <ul className="mt-3 space-y-2 text-sm">
+          {scenarios.slice(0, 3).map((scenario) => <li key={scenario.id}><Link className="font-semibold text-subjects underline"
+            href={decisionPath(scenario.planId, "escenarios", scenario.id)}>{scenario.name}</Link></li>)}
+        </ul> : <p className={`${muted} mt-2`}>Guarda combinaciones de asignaturas y prioridades para comparar tus alternativas.</p>}
+        {recordPlan && <Link href={decisionPath(recordPlan.id, "escenarios")} className={`${button} mt-3`}>{scenarios.length ? "Abrir escenarios" : "Crear un escenario"}</Link>}
       </section>
     </div>
-  );
+
+    <section id="favoritos" className={card}>
+      <h2 className="text-xl font-semibold">Favoritos</h2>
+      <Favorites favorites={favorites} />
+    </section>
+
+    <section id="perfil" className={`${card} space-y-4`}>
+      <div><h2 className="text-xl font-semibold">Mi perfil</h2><p className={`${muted} mt-1`}>{user.email}</p></div>
+      <ProfileForm name={profile?.displayName ?? user.name} stage={profile?.academicStage ?? ""}
+        goal={profile?.decisionGoal ?? ""} languages={profile?.languages ?? []} />
+      {current && <div className="border-t border-border pt-3"><RemoveCurrentPlan /></div>}
+    </section>
+  </div>;
 }

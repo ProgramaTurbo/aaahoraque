@@ -12,7 +12,7 @@ const stages = [
   ["other", "Otra situación"],
 ];
 
-export function ProfileForm({ name, stage, languages }: { name: string; stage: string; languages: Language[] }) {
+export function ProfileForm({ name, stage, goal, languages }: { name: string; stage: string; goal: string; languages: Language[] }) {
   const [message, action, pending] = useActionState(saveProfile, "");
 
   return <form action={action} className="space-y-5">
@@ -27,6 +27,14 @@ export function ProfileForm({ name, stage, languages }: { name: string; stage: s
         </select>
       </label>
     </div>
+    <label className="block space-y-2"><span>¿Qué quieres decidir ahora?</span>
+      <select name="decisionGoal" defaultValue={goal} className={accountInput}>
+        <option value="">Sin indicar</option>
+        <option value="degree">Qué titulación estudiar</option>
+        <option value="subjects">Qué asignaturas cursar</option>
+        <option value="erasmus">Dónde hacer Erasmus</option>
+      </select>
+    </label>
     <fieldset className="space-y-3">
       <legend className="font-semibold">Idiomas</legend>
       {[0, 1, 2].map((i) => <div key={i} className="grid grid-cols-[minmax(0,1fr)_8rem] gap-3">

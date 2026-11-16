@@ -58,6 +58,7 @@ export type Language = { name: string; level: typeof languageLevels[number] };
 export const studentProfiles = pgTable("student_profiles", {
   userId: uuid("user_id").primaryKey().references(() => authUsers.id, { onDelete: "cascade" }),
   displayName: text("display_name"),
+  decisionGoal: text("decision_goal", { enum: ["degree", "subjects", "erasmus"] }),
   academicStage: text("academic_stage", { enum: academicStages }),
   languages: jsonb("languages").$type<Language[]>().default([]).notNull(),
   currentStudyPlanId: uuid("current_study_plan_id").references(() => studyPlans.id, { onDelete: "set null" }),
@@ -70,6 +71,7 @@ export const studentPlanProgress = pgTable("student_plan_progress", {
   completed: uuid("completed").array().notNull(),
   shortlist: uuid("shortlist").array().notNull(),
   preferences: jsonb("preferences").$type<SubjectPreferences>().notNull(),
+  lastSection: text("last_section", { enum: ["expediente", "preferencias"] }),
   version: integer("version").default(1).notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 }, (table) => [primaryKey({ columns: [table.userId, table.planId] })]);
