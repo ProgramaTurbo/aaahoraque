@@ -27,6 +27,6 @@ export function RemoveCurrentPlan() {
     <button type="button" onClick={remove} disabled={pending} className="min-h-11 text-sm underline">
       {pending ? "Actualizando…" : "Quitar como plan actual"}
     </button>
-    {error && <p role="alert" className="text-rose-300">{error}</p>}
+    {error && <p role="alert" className="text-error-fg">{error}</p>}
   </div>;
 }

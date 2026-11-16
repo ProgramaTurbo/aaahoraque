@@ -41,7 +41,7 @@ export function ProfileForm({ name, stage, languages }: { name: string; stage: s
     </fieldset>
     <div className="flex flex-wrap items-center gap-4">
       <button type="submit" disabled={pending} className={accountButton}>{pending ? "Guardando…" : "Guardar perfil"}</button>
-      {message && <p role="status" className={message === "Perfil guardado." ? "text-violet-200" : "text-rose-300"}>{message}</p>}
+      {message && <p role="status" className={message === "Perfil guardado." ? "text-success-fg" : "text-error-fg"}>{message}</p>}
     </div>
   </form>;
 }

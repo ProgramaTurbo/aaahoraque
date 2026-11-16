@@ -66,10 +66,10 @@ export function SubjectsExperience({ universities, plans, universityId, currentP
   }
 
   return <>
-    <section aria-labelledby="plan-search-title" className="space-y-5 rounded-2xl border border-cyan-300/20 bg-[var(--color-bg-card)] p-5 sm:p-7">
+    <section aria-labelledby="plan-search-title" className="space-y-5 rounded-2xl border border-subjects-border bg-[var(--color-bg-card)] p-5 sm:p-7">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 id="plan-search-title" className="text-lg font-semibold">Busca tu plan de estudios</h2>
-        {pending && <span role="status" className="text-sm text-cyan-200">Actualizando catálogo…</span>}
+        {pending && <span role="status" className="text-sm text-subjects">Actualizando catálogo…</span>}
       </div>
       {universities.length ? <>
         <div className="grid items-start gap-5 md:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
@@ -87,20 +87,20 @@ export function SubjectsExperience({ universities, plans, universityId, currentP
             </p>}
             {universityId && !plans.length && <p className="text-sm text-[var(--color-fg-dim)]">Esta universidad aún no tiene planes disponibles.</p>}
             {workspace?.status === "official" && (currentPlanId === activePlan
-              ? <p className="text-sm font-semibold text-cyan-200">✓ Mi plan actual</p>
+              ? <p className="text-sm font-semibold text-subjects">✓ Mi plan actual</p>
               : signedIn
                 ? <button type="button" onClick={markCurrent} disabled={pending || marking}
-                    className="min-h-10 rounded-lg border border-cyan-300/30 px-3 text-sm font-semibold text-cyan-100 hover:bg-cyan-300/10 disabled:opacity-50">
+                    className="min-h-10 rounded-lg border border-subjects-border bg-subjects-surface px-3 text-sm font-semibold text-subjects hover:bg-subjects-highlight focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-subjects disabled:opacity-50">
                     {marking ? "Actualizando…" : "Marcar como mi plan actual"}
                   </button>
-                : <Link href={accountPath("/login", workspace.returnTo)} className="text-sm text-cyan-200 underline">Iniciar sesión para guardar este plan</Link>)}
+                : <Link href={accountPath("/login", workspace.returnTo)} className="text-sm text-subjects underline">Iniciar sesión para guardar este plan</Link>)}
             {planError && <p role="alert" className="text-sm text-rose-300">{planError}</p>}
           </div>
         </div>
       </> : <p className="text-sm text-[var(--color-fg-dim)]">El catálogo de esta base de datos aún no contiene universidades con planes disponibles.</p>}
     </section>
     {workspace ? <SubjectsWorkspace key={workspace.planId} {...workspace} onDirtyChange={(changed) => setDirtyPlan(changed ? activePlan : undefined)} />
-      : universities.length > 0 && <p className="rounded-xl border border-dashed border-white/15 px-5 py-8 text-center text-[var(--color-fg-dim)]">
+      : universities.length > 0 && <p className="rounded-xl border border-dashed border-border-light px-5 py-8 text-center text-[var(--color-fg-dim)]">
         {universityId ? "Elige una titulación o plan para ver sus asignaturas." : "Empieza escribiendo el nombre de tu universidad."}
       </p>}
   </>;

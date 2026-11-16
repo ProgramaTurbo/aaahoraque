@@ -67,21 +67,21 @@ export function CatalogSearch({ label, placeholder, options, selected, disabled,
       onFocus={() => { setOpen(true); if (selected) setQuery(""); }}
       onClick={() => setOpen(true)} onBlur={close} onKeyDown={move}
       onChange={(event) => { setQuery(event.target.value); setOpen(true); setActive(-1); }}
-      className="h-12 w-full rounded-xl border border-white/15 bg-black/25 px-4 pr-11 text-sm focus:border-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-300/30 disabled:opacity-45"
+      className="h-12 w-full rounded-xl border border-control-border bg-bg-card px-4 pr-11 text-sm text-fg placeholder:text-muted focus:border-subjects focus:outline-2 focus:outline-offset-2 focus:outline-subjects disabled:opacity-45"
     />
     <button type="button" tabIndex={-1} aria-label={`Buscar ${label.toLocaleLowerCase("es")}`}
       disabled={disabled}
       onMouseDown={(event) => event.preventDefault()}
       onClick={() => { if (open) close(); else { input.current?.focus(); setOpen(true); } }}
-      className="absolute right-1 top-8 grid size-10 place-items-center text-cyan-200 disabled:opacity-40">
+      className="absolute right-1 top-8 grid size-10 place-items-center text-subjects disabled:opacity-40">
       <span aria-hidden="true">⌄</span>
     </button>
-    <div hidden={!open || disabled} className="absolute inset-x-0 top-full z-30 mt-2 rounded-xl border border-white/15 bg-[#181322] shadow-2xl">
+    <div hidden={!open || disabled} className="absolute inset-x-0 top-full z-30 mt-2 rounded-xl border border-control-border bg-bg-card text-fg shadow-lg">
       <ul id={`${id}-list`} role="listbox" aria-label={label} className="max-h-64 overflow-y-auto p-1.5">
         {visible.map((option, index) => (
           <li key={option.id} id={`${id}-option-${index}`} role="option" aria-selected={active === index}
             onMouseDown={(event) => event.preventDefault()} onClick={() => choose(option)}
-            className={`cursor-pointer rounded-lg px-3 py-2.5 hover:bg-white/10 ${active === index ? "bg-cyan-300/15" : ""}`}>
+            className={`cursor-pointer rounded-lg px-3 py-2.5 hover:bg-subjects-surface ${active === index ? "bg-subjects-highlight" : ""}`}>
             <span className="block text-sm font-semibold">{option.label}</span>
             {option.detail && <span className="mt-0.5 block text-xs text-[var(--color-fg-dim)]">{option.detail}</span>}
           </li>

@@ -81,7 +81,7 @@ export default async function SubjectsPage({ searchParams }: { searchParams: Sea
             <h1 className="font-display text-4xl leading-none md:text-5xl">Asignaturas</h1>
             <p className="mt-3 max-w-xl text-[var(--color-fg-dim)]">Consulta tu plan, lleva tu expediente y compara asignaturas.</p>
           </div>
-          <Link href="/subjects/demo" className="rounded-lg border border-cyan-300/30 px-4 py-2.5 text-sm font-semibold text-cyan-100 hover:bg-cyan-300/10">
+          <Link href="/subjects/demo" className="rounded-lg border border-subjects-border bg-subjects-surface px-4 py-2.5 text-sm font-semibold text-subjects hover:bg-subjects-highlight focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-subjects">
             Probar la demo de optativas →
           </Link>
         </header>

@@ -32,7 +32,7 @@ export default function RootLayout({
         <div className="grain"></div>
 
         {/* Top Nav */}
-        <header className="sticky top-0 z-50 backdrop-blur-md bg-black/50 border-b border-white/5">
+        <header className="sticky top-0 z-50 backdrop-blur-md border-b border-border bg-bg-card/95">
           <div className="mx-auto flex max-w-[1600px] flex-wrap items-center justify-between gap-3 px-5 py-3 lg:px-10">
             <Link href="/" aria-label="Volver a la página principal" className="font-display text-2xl tracking-wider">
               AAAhoraQue<span className="text-[var(--color-accent)]">?</span>
@@ -52,7 +52,7 @@ export default function RootLayout({
         </main>
 
         {/* Footer */}
-        <footer className="border-t border-[var(--color-border)] bg-black py-8 mt-20">
+        <footer className="border-t border-border bg-bg-darker py-8 mt-20">
           <div className="max-w-[1600px] mx-auto px-6 lg:px-10 text-center font-mono text-xs text-[var(--color-muted)] tracking-[0.2em] uppercase">
             AAAhoraQue? · Equipo A³ — La decisión siempre es tuya.
           </div>

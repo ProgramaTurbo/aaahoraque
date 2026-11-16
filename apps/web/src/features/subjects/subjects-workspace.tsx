@@ -186,7 +186,7 @@ export function SubjectsWorkspace({
           <span className="mt-1 block text-sm text-[var(--color-fg-dim)]">{field.help}</span>
         </span>
         <select
-          className="min-w-36 border border-[var(--color-border-light)] bg-[var(--color-bg-darker)] px-4 py-3 text-[var(--color-fg)] focus:border-[var(--color-subjects)] focus:outline-none"
+          className="min-w-36 border border-control-border bg-bg-card px-4 py-3 text-[var(--color-fg)] focus:border-subjects focus:outline-2 focus:outline-offset-2 focus:outline-subjects"
           aria-label={field.label}
           value={preferences[field.key] ?? ""}
           disabled={pending}
@@ -201,27 +201,27 @@ export function SubjectsWorkspace({
 
   return (
     <section className={`space-y-5 ${canSave ? "pb-24" : ""}`} aria-label="Espacio de Asignaturas">
-      <header className="rounded-2xl border border-white/10 bg-[var(--color-bg-card)] p-5 sm:p-7">
+      <header className="rounded-2xl border border-border bg-[var(--color-bg-card)] p-5 sm:p-7">
         <h2 className="text-2xl font-semibold">{degreeName}</h2>
         <p className="mt-2 text-sm text-[var(--color-fg-dim)]">{[planName === degreeName ? null : planName, centerName].filter(Boolean).join(" · ")}</p>
-        <ul className="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-sm text-cyan-100">
+        <ul className="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-sm text-subjects">
           <li>{subjects.length} asignaturas</li>
           <li>{format.format(totalEcts)} ECTS del plan</li>
           {canSave && <li>{format.format(earnedCredits)} ECTS superados · declarados</li>}
         </ul>
-        {synthetic && <p className="mt-4 rounded-lg bg-amber-300/10 p-3 text-sm text-amber-200">Plan simulado. Sus asignaturas sirven para explorar la herramienta.</p>}
+        {synthetic && <p className="mt-4 rounded-lg bg-warning-bg p-3 text-sm text-warning-fg">Plan simulado. Sus asignaturas sirven para explorar la herramienta.</p>}
       </header>
 
-      <nav aria-label="Secciones de Asignaturas" className="flex flex-wrap gap-2 rounded-xl border border-white/10 bg-[var(--color-bg-card)] p-2">
+      <nav aria-label="Secciones de Asignaturas" className="flex flex-wrap gap-2 rounded-xl border border-border bg-[var(--color-bg-card)] p-2">
         {tabItems.map((item) => (
           <button key={item.id} type="button" aria-pressed={tab === item.id} onClick={() => setTab(item.id)}
-            className={`min-h-10 rounded-lg px-3 text-sm font-semibold transition sm:px-4 ${tab === item.id ? "bg-cyan-300/15 text-cyan-100" : "text-[var(--color-fg-dim)] hover:bg-white/5"}`}>
+            className={`min-h-10 rounded-lg px-3 text-sm font-semibold transition sm:px-4 ${tab === item.id ? "bg-subjects-highlight text-subjects" : "text-[var(--color-fg-dim)] hover:bg-bg-card-hover"}`}>
             {item.title}
           </button>
         ))}
       </nav>
 
-      <div className="rounded-2xl border border-white/10 bg-[var(--color-bg-card)] p-5 sm:p-7">
+      <div className="rounded-2xl border border-border bg-[var(--color-bg-card)] p-5 sm:p-7">
           {tab === "catalogo" && (
             <div className="space-y-7">
               <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
@@ -235,14 +235,14 @@ export function SubjectsWorkspace({
               </div>
               <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_160px_180px]">
                 <label className="sr-only" htmlFor="subjects-search">Buscar asignaturas</label>
-                <input id="subjects-search" type="search" value={term} onChange={(e) => setTerm(e.target.value)} placeholder="Buscar por nombre o código" className="w-full border border-[var(--color-border-light)] bg-[var(--color-bg-darker)] px-4 py-3 text-[var(--color-fg)] placeholder:text-[var(--color-muted)] focus:border-[var(--color-subjects)] focus:outline-none" />
+                <input id="subjects-search" type="search" value={term} onChange={(e) => setTerm(e.target.value)} placeholder="Buscar por nombre o código" className="w-full border border-control-border bg-bg-card px-4 py-3 text-[var(--color-fg)] placeholder:text-[var(--color-muted)] focus:border-subjects focus:outline-2 focus:outline-offset-2 focus:outline-subjects" />
                 <label className="sr-only" htmlFor="subjects-year">Curso</label>
-                <select id="subjects-year" value={year} onChange={(e) => setYear(e.target.value)} className="border border-[var(--color-border-light)] bg-[var(--color-bg-darker)] px-4 py-3 text-[var(--color-fg)]">
+                <select id="subjects-year" value={year} onChange={(e) => setYear(e.target.value)} className="border border-control-border bg-bg-card px-4 py-3 text-[var(--color-fg)]">
                   <option value="todos">Todos los cursos</option>
                   {years.map((y) => <option key={y ?? "null"} value={String(y)}>{y === null ? "Sin curso" : `${y}.º curso`}</option>)}
                 </select>
                 <label className="sr-only" htmlFor="subjects-type">Tipo</label>
-                <select id="subjects-type" value={type} onChange={(e) => setType(e.target.value)} className="border border-[var(--color-border-light)] bg-[var(--color-bg-darker)] px-4 py-3 text-[var(--color-fg)]">
+                <select id="subjects-type" value={type} onChange={(e) => setType(e.target.value)} className="border border-control-border bg-bg-card px-4 py-3 text-[var(--color-fg)]">
                   <option value="todos">Todos los tipos</option>
                   {types.map((t) => <option key={t} value={t}>{subjectType(t)}</option>)}
                 </select>
@@ -291,9 +291,9 @@ export function SubjectsWorkspace({
               <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_12rem]">
                 <input type="search" aria-label="Buscar en mi expediente" placeholder="Buscar por nombre o código"
                   value={recordTerm} onChange={(event) => setRecordTerm(event.target.value)}
-                  className="min-h-11 rounded-lg border border-white/15 bg-black/20 px-3 text-sm" />
+                  className="min-h-11 rounded-lg border border-control-border bg-bg-darker px-3 text-sm" />
                 <select aria-label="Estado en el expediente" value={recordStatus} onChange={(event) => setRecordStatus(event.target.value)}
-                  className="min-h-11 rounded-lg border border-white/15 bg-[var(--color-bg-darker)] px-3 text-sm">
+                  className="min-h-11 rounded-lg border border-control-border bg-[var(--color-bg-darker)] px-3 text-sm">
                   <option value="all">Todas</option>
                   <option value="completed">Superadas</option>
                   <option value="pending">Sin marcar</option>
@@ -305,8 +305,8 @@ export function SubjectsWorkspace({
                   <h4 className="bg-[var(--color-bg-darker)] px-5 py-4 font-heading text-[var(--color-fg)]">{y === null ? "Sin curso asignado" : `${y}.º curso`}</h4>
                   <div className="divide-y divide-[var(--color-border)]">
                     {recordSubjects.filter((s) => s.year === y).map((s) => (
-                      <label key={s.id} className={`flex cursor-pointer items-center gap-4 px-5 py-4 ${completedIds.has(s.id) ? "bg-cyan-300/10" : "hover:bg-white/5"}`}>
-                        <input type="checkbox" checked={completedIds.has(s.id)} onChange={() => toggleCompleted(s.id)} disabled={pending} className="h-4 w-4 accent-cyan-400" />
+                      <label key={s.id} className={`flex cursor-pointer items-center gap-4 px-5 py-4 ${completedIds.has(s.id) ? "bg-subjects-surface" : "hover:bg-bg-card-hover"}`}>
+                        <input type="checkbox" checked={completedIds.has(s.id)} onChange={() => toggleCompleted(s.id)} disabled={pending} className="h-4 w-4 accent-subjects-fill" />
                         <span className="min-w-0 flex-1 text-sm">{s.name}</span>
                         <span className="shrink-0 font-mono text-xs text-[var(--color-fg-dim)]">{format.format(s.ects)} ECTS</span>
                       </label>
@@ -340,7 +340,7 @@ export function SubjectsWorkspace({
                     ))}
                   </div>
                 )}
-                {priorities.every((p) => preferences[p.key] !== null) && totalPriority === 0 && <p className="mt-5 text-sm text-amber-300">Asigna un valor positivo a algún criterio si deseas ponderarlos.</p>}
+                {priorities.every((p) => preferences[p.key] !== null) && totalPriority === 0 && <p className="mt-5 text-sm text-warning-fg">Asigna un valor positivo a algún criterio si deseas ponderarlos.</p>}
               </div>
             </div>
           )}
@@ -359,7 +359,7 @@ export function SubjectsWorkspace({
               ) : (
                 <div className="grid gap-4 md:grid-cols-3">
                   {selectedSubjects.map((s) => (
-                    <article key={s.id} className="flex flex-col border border-[var(--color-border-light)] bg-[var(--color-bg-darker)] p-5">
+                    <article key={s.id} className="flex flex-col border border-control-border bg-bg-card p-5">
                       <h4 className="mt-3 min-h-16 font-display text-xl leading-snug">{s.name}</h4>
                       <dl className="mt-5 flex-1 divide-y divide-[var(--color-border)] text-sm">
                         {[
@@ -378,16 +378,16 @@ export function SubjectsWorkspace({
             </div>
           )}
         </div>
-      {canSave && <div className="fixed inset-x-0 bottom-0 z-40 border-t border-white/15 bg-[#15101e] pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_30px_#0008]">
+      {canSave && <div className="fixed inset-x-0 bottom-0 z-40 border-t border-control-border bg-bg-card pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_24px_#120a201a]">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-5 py-3 md:px-9">
           <div className="min-w-0 text-sm">
-            <p role={feedback?.error ? "alert" : "status"} className={feedback?.error ? "text-rose-300" : "text-[var(--color-fg-dim)]"}>
+            <p role={feedback?.error ? "alert" : "status"} className={feedback?.error ? "text-error-fg" : "text-[var(--color-fg-dim)]"}>
               {feedback?.text ?? (dirty ? "Cambios sin guardar" : version ? "Progreso guardado" : "Guarda tu progreso para retomarlo después")}
             </p>
-            {version === 0 && !dirty && <button type="button" onClick={importLocalProgress} disabled={pending} className="mt-1 text-xs text-cyan-200 underline">Importar datos de este navegador</button>}
+            {version === 0 && !dirty && <button type="button" onClick={importLocalProgress} disabled={pending} className="mt-1 text-xs text-subjects underline">Importar datos de este navegador</button>}
           </div>
           <button type="button" onClick={save} disabled={pending || !dirty}
-            className="min-h-11 rounded-lg bg-cyan-300 px-5 text-sm font-semibold text-[#07151b] hover:bg-cyan-200 disabled:opacity-45">
+            className="min-h-11 rounded-lg bg-subjects-fill px-5 text-sm font-semibold text-subjects-on-fill hover:bg-subjects-fill-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-subjects disabled:opacity-45">
             {pending ? "Guardando…" : "Guardar progreso"}
           </button>
         </div>
