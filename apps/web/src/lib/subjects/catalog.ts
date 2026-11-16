@@ -4,34 +4,6 @@ import { sql } from "drizzle-orm";
 import { isCatalogPlanVisible } from "@/lib/catalog/plan-visibility";
 import { db } from "@/lib/db";
 
-// Identificador verificado del programa conjunto GII + ADE de UNIZAR, plan 634.
-// Solo se usa como selección inicial del demo: nunca se insertan datos.
-export const DEFAULT_OFFICIAL_SUBJECT_PLAN_ID = "85a890cb-4267-50a3-a2f5-611acdb92f5a";
-
-export async function getDefaultSubjectDemoContext() {
-  const rows = await db.execute(sql`
-    SELECT
-      u.id AS university_id,
-      p.id AS plan_id
-    FROM study_plans p
-    JOIN joint_programs jp ON jp.id = p.joint_program_id
-    JOIN universities u ON u.id = jp.university_id
-    WHERE p.id = ${DEFAULT_OFFICIAL_SUBJECT_PLAN_ID}::uuid
-      AND p.official_code = '634'
-      AND p.status = 'official'
-      AND p.source_url LIKE 'https://estudios.unizar.es/%'
-    LIMIT 1
-  `);
-
-  const row = rows[0];
-  if (!row) return null;
-
-  return {
-    universityId: String(row.university_id),
-    planId: String(row.plan_id),
-  };
-}
-
 export async function getSubjectUniversities() {
   const rows = await db.execute(sql`
     SELECT u.id, u.official_name AS name
@@ -64,6 +36,7 @@ export async function getSubjectPlans(universityId: string) {
     SELECT
       plans.id,
       plans.plan_name,
+      plans.plan_code,
       plans.status,
       plans.total_ects,
       plans.degree_name,
@@ -73,6 +46,7 @@ export async function getSubjectPlans(universityId: string) {
       SELECT
         p.id,
         p.name AS plan_name,
+        p.official_code AS plan_code,
         p.status,
         p.total_ects,
         d.name AS degree_name,
@@ -91,6 +65,7 @@ export async function getSubjectPlans(universityId: string) {
       SELECT
         p.id,
         p.name AS plan_name,
+        p.official_code AS plan_code,
         p.status,
         p.total_ects,
         jp.name AS degree_name,
@@ -112,6 +87,7 @@ export async function getSubjectPlans(universityId: string) {
   return rows.map((row) => ({
     id: String(row.id),
     planName: String(row.plan_name),
+    planCode: row.plan_code ? String(row.plan_code) : null,
     status: String(row.status),
     totalEcts: Number(row.total_ects),
     degreeName: String(row.degree_name),

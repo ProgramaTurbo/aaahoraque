@@ -1,7 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import {
-  getDefaultSubjectDemoContext,
   getSubjectUniversities,
   getSubjectPlans,
   getPlanSubjects,
@@ -9,7 +8,7 @@ import {
 import { getAccountUser } from "@/lib/account/session";
 import { getOfficialPlanContext, getSavedPlanProgress, getStudentProfile, subjectsPlanPath } from "@/lib/account/profile";
 import { subjectTab } from "@/lib/subjects/progress";
-import { SubjectsWorkspace } from "@/features/subjects/subjects-workspace";
+import { SubjectsExperience } from "@/features/subjects/subjects-experience";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
@@ -17,8 +16,7 @@ export const metadata: Metadata = {
   description: "Explora tu plan, declara las asignaturas superadas y compara alternativas con información académica trazable.",
 };
 
-type SearchParams = Promise<{ university?: string; plan?: string; section?: string }>;
-const selectClass = "w-full border border-[var(--color-border-light)] bg-[var(--color-bg-card)] px-5 py-4 text-[var(--color-fg)] focus:border-[var(--color-subjects)] focus:outline-none";
+type SearchParams = Promise<{ university?: string; plan?: string; section?: string; buscar?: string }>;
 
 export default async function SubjectsPage({ searchParams }: { searchParams: SearchParams }) {
   const params = await searchParams;
@@ -27,15 +25,14 @@ export default async function SubjectsPage({ searchParams }: { searchParams: Sea
     try {
       const profile = user ? await getStudentProfile(user.id) : null;
       const universities = await getSubjectUniversities();
-      const isInitialVisit = !params.university && !params.plan;
+      const isInitialVisit = !params.university && !params.plan && params.buscar !== "1";
       const current = isInitialVisit && profile?.currentStudyPlanId
         ? await getOfficialPlanContext(profile.currentStudyPlanId)
         : null;
-      const demo = isInitialVisit && !current ? await getDefaultSubjectDemoContext() : null;
-      const universityId = params.university ?? current?.universityId ?? demo?.universityId;
+      const universityId = params.university ?? current?.universityId;
       const selectedUniversity = universities.find((u) => u.id === universityId);
       const plans = selectedUniversity ? await getSubjectPlans(selectedUniversity.id) : [];
-      const planId = params.plan ?? current?.id ?? demo?.planId;
+      const planId = params.plan ?? current?.id;
       const selectedPlan = plans.find((p) => p.id === planId);
       const subjects = selectedPlan ? await getPlanSubjects(selectedPlan.id) : [];
       const progress = user && selectedPlan?.status === "official"
@@ -62,104 +59,54 @@ export default async function SubjectsPage({ searchParams }: { searchParams: Sea
   }
   const { universities, selectedUniversity, plans, selectedPlan, subjects, progress, currentPlanId } = context;
 
+  const workspace = selectedPlan && selectedUniversity ? {
+    signedIn: Boolean(user),
+    initialTab: subjectTab(params.section),
+    initialProgress: progress,
+    returnTo: subjectsPlanPath({ id: selectedPlan.id, universityId: selectedUniversity.id }),
+    planId: selectedPlan.id,
+    planName: selectedPlan.planName,
+    degreeName: selectedPlan.degreeName,
+    centerName: selectedPlan.centerName,
+    totalEcts: selectedPlan.totalEcts,
+    status: selectedPlan.status,
+    subjects,
+  } : undefined;
+
   return (
-    <main className="bg-textured min-h-[calc(100vh-80px)]">
-      <div className="mx-auto max-w-[1500px] px-5 py-12 md:px-10 md:py-16">
-        <nav aria-label="Ruta de navegación" className="mb-10 flex flex-wrap items-center gap-3 font-mono text-xs tracking-wider text-[var(--color-fg-dim)]">
-          <Link href="/" className="hover:text-[var(--color-fg)]">AAAHORAQUE?</Link><span aria-hidden="true">/</span>
-          <span className="text-[var(--color-subjects)]">ASIGNATURAS</span>
-          <span className="mx-1 opacity-40">·</span>
-          <Link href="/explorar/titulaciones" className="hover:text-[var(--color-subjects)]">EXPLORAR TITULACIONES ↗</Link>
-        </nav>
-
-        <header className="mb-14 max-w-5xl">
-          <div className="section-marker section-marker-subjects mb-6">SISTEMA DE AYUDA A LA DECISIÓN</div>
-          <h1 className="font-display text-[clamp(3.1rem,7vw,7rem)] leading-[0.94] tracking-tight">
-            TU CAMINO.<br /><span className="text-[var(--color-subjects)]">TUS ASIGNATURAS.</span><br />TU DECISIÓN.
-          </h1>
-          <p className="mt-7 max-w-3xl text-base leading-relaxed text-[var(--color-fg-dim)] md:text-lg">
-            Conoce tu plan académico, organiza tu expediente y compara alternativas. Tú decides; AAAhoraQue aporta estructura y transparencia.
-          </p>
+    <div className="bg-textured min-h-screen">
+      <div className="mx-auto max-w-7xl space-y-7 px-5 py-8 md:px-9 md:py-12">
+        <header className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h1 className="font-display text-4xl leading-none md:text-5xl">Asignaturas</h1>
+            <p className="mt-3 max-w-xl text-[var(--color-fg-dim)]">Consulta tu plan, lleva tu expediente y compara asignaturas.</p>
+          </div>
+          <Link href="/subjects/demo" className="rounded-lg border border-cyan-300/30 px-4 py-2.5 text-sm font-semibold text-cyan-100 hover:bg-cyan-300/10">
+            Probar la demo de optativas →
+          </Link>
         </header>
-
-          <section aria-label="Acceso directo a la demostración" className="mb-12 grid items-center gap-5 border border-[var(--color-subjects)]/35 bg-[var(--color-subjects)]/[0.06] p-6 md:grid-cols-[minmax(0,1fr)_auto] md:p-8">
-            <div>
-              <span className="section-marker section-marker-subjects">DEMO INSTANTÁNEA · SIN FORMULARIOS</span>
-              <h2 className="font-display mt-3 text-2xl md:text-3xl">OBSERVA LOS DATOS. DECIDE TÚ.</h2>
-              <p className="mt-3 max-w-2xl text-sm leading-relaxed text-[var(--color-fg-dim)]">Estudiante ficticio con primero y segundo aprobados. Investiga 40 optativas reales del plan 716 de Ingeniería Informática de UNIZAR, con gráficos y estadísticas sintéticas identificadas.</p>
-            </div>
-            <Link href="/subjects/demo" className="inline-flex min-h-12 items-center justify-center whitespace-nowrap bg-[var(--color-subjects)] px-7 py-4 font-heading text-sm font-bold text-[#07151b] transition hover:brightness-110">PROBAR DEMO →</Link>
-          </section>
-
-        <section aria-label="Seleccionar contexto académico" className="mb-12 grid gap-5 border-y border-[var(--color-border)] py-8 lg:grid-cols-2">
-          <form action="/subjects" method="GET" className="space-y-3">
-            <label htmlFor="university" className="block font-mono text-xs tracking-widest text-[var(--color-subjects)]">01 / UNIVERSIDAD</label>
-            <select id="university" name="university" required defaultValue={selectedUniversity?.id ?? ""} className={selectClass}>
-              <option value="" disabled>Selecciona tu universidad</option>
-              {universities.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
-            </select>
-            <button type="submit" className="bg-[var(--color-subjects)] px-6 py-3 font-heading text-sm text-[#07151b] hover:brightness-110">Continuar →</button>
-          </form>
-          {selectedUniversity ? (
-            <form action="/subjects" method="GET" className="space-y-3">
-              <input type="hidden" name="university" value={selectedUniversity.id} />
-              <label htmlFor="plan" className="block font-mono text-xs tracking-widest text-[var(--color-subjects)]">02 / TITULACIÓN Y PLAN</label>
-              <select id="plan" name="plan" required defaultValue={selectedPlan?.id ?? ""} className={selectClass}>
-                <option value="" disabled>Selecciona un plan</option>
-                {plans.map((p) => <option key={p.id} value={p.id}>{p.degreeName}{p.centerName ? ` · ${p.centerName}` : ""} · {p.planName}{p.status === "synthetic" ? " [DATOS SIMULADOS]" : ""}</option>)}
-              </select>
-              <button type="submit" className="border border-[var(--color-subjects)] px-6 py-3 font-heading text-sm text-[var(--color-subjects)] hover:bg-[var(--color-subjects)]/10">Abrir mi espacio →</button>
-            </form>
-          ) : (
-            <div className="flex flex-col justify-center border-l border-[var(--color-border)] px-5 text-sm leading-relaxed text-[var(--color-fg-dim)]">
-              <span className="font-mono text-xs tracking-widest text-[var(--color-subjects)]">02 / TITULACIÓN Y PLAN</span>
-              <p className="mt-3">Primero selecciona una universidad para consultar los planes disponibles.</p>
-            </div>
-          )}
-        </section>
-
-        {selectedPlan && selectedUniversity ? (
-          <SubjectsWorkspace
-            key={`${selectedPlan.id}:${user?.id ?? "guest"}`}
-            signedIn={Boolean(user)}
-            initialTab={subjectTab(params.section)}
-            initialProgress={progress}
-            currentPlan={currentPlanId === selectedPlan.id}
-            returnTo={subjectsPlanPath({ id: selectedPlan.id, universityId: selectedUniversity.id })}
-            planId={selectedPlan.id}
-            planName={selectedPlan.planName}
-            degreeName={selectedPlan.degreeName}
-            centerName={selectedPlan.centerName}
-            totalEcts={selectedPlan.totalEcts}
-            status={selectedPlan.status}
-            subjects={subjects}
-          />
-        ) : (
-          <section className="relative overflow-hidden border border-[var(--color-border)] bg-[var(--color-bg-card)] px-7 py-12 md:px-12 md:py-16">
-            <div className="absolute right-0 top-0 h-72 w-72 rounded-full bg-[var(--color-subjects)] opacity-[0.07] blur-3xl" aria-hidden="true" />
-            <div className="relative max-w-3xl">
-              <div className="section-marker section-marker-subjects">UN RECORRIDO, CUATRO ETAPAS</div>
-              <h2 className="font-display mt-5 text-3xl md:text-5xl">DE LA INFORMACIÓN A LA DECISIÓN.</h2>
-              <p className="mt-5 text-[var(--color-fg-dim)]">Al seleccionar un plan podrás explorar sus asignaturas, organizar lo que has superado, definir tus prioridades y comparar las alternativas disponibles.</p>
-            </div>
-            <div className="relative mt-10 grid gap-4 md:grid-cols-4">
-              {[
-                ["01", "Explorar", "Conocer las asignaturas"],
-                ["02", "Mi expediente", "Situar tu progreso"],
-                ["03", "Mis prioridades", "Explicar qué valoras"],
-                ["04", "Comparar", "Entender las diferencias"],
-              ].map(([number, title, description]) => (
-                <div key={number} className="border-t border-[var(--color-subjects)] bg-[var(--color-bg-darker)] p-5">
-                  <span className="font-mono text-xs text-[var(--color-subjects)]">{number} /</span>
-                  <h3 className="font-heading mt-3 text-lg">{title}</h3>
-                  <p className="mt-2 text-sm text-[var(--color-fg-dim)]">{description}</p>
-                </div>
-              ))}
-            </div>
-            <p className="relative mt-8 text-xs text-[var(--color-muted)]">La información académica se distingue por su procedencia. Los planes generados para simulación no permiten recomendaciones reales de matrícula.</p>
-          </section>
-        )}
+        <SubjectsExperience
+          universities={universities.map((university) => ({
+            id: university.id, label: university.name,
+            keywords: university.name === "Universidad de Zaragoza" ? "UNIZAR" : undefined,
+          }))}
+          plans={plans.map((plan) => ({
+            id: plan.id,
+            label: plan.degreeName,
+            detail: [
+              plan.centerName,
+              plan.planName === plan.degreeName ? null : plan.planName,
+              plan.planCode && !plan.planName.includes(plan.planCode) && plan.status === "official" ? `Plan ${plan.planCode}` : null,
+              plan.status === "synthetic" ? "Simulado" : null,
+            ].filter(Boolean).join(" · "),
+            keywords: plan.planCode ?? undefined,
+          }))}
+          universityId={selectedUniversity?.id}
+          currentPlanId={currentPlanId}
+          workspace={workspace}
+          signedIn={Boolean(user)}
+        />
       </div>
-    </main>
+    </div>
   );
 }

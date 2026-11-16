@@ -2,8 +2,8 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { saveSubjectProgress, setCurrentStudyPlan } from "@/app/subjects/account-actions";
+import { saveSubjectProgress } from "@/app/subjects/account-actions";
+import { normalizeSearch } from "./catalog-search";
 import { accountPath } from "@/lib/account/paths";
 import { emptySubjectPreferences, normalizeSubjectPreferences, type SubjectPreferenceField, type SubjectProgress, type SubjectTab } from "@/lib/subjects/progress";
 
@@ -30,7 +30,7 @@ type Props = {
   signedIn: boolean;
   initialTab: SubjectTab;
   initialProgress: SubjectProgress | null;
-  currentPlan: boolean;
+  onDirtyChange: (dirty: boolean) => void;
   returnTo: string;
 };
 
@@ -79,9 +79,8 @@ function readLocalPreferences(key: string) {
 
 export function SubjectsWorkspace({
   planId, planName, degreeName, centerName, totalEcts, status, subjects,
-  signedIn, initialTab, initialProgress, currentPlan, returnTo,
+  signedIn, initialTab, initialProgress, onDirtyChange, returnTo,
 }: Props) {
-  const router = useRouter();
   const [tab, setTab] = useState<SubjectTab>(initialTab);
   const allowedIds = useMemo(() => new Set(subjects.map((s) => s.id)), [subjects]);
   const [completed, setCompleted] = useState(() => initialProgress?.completed.filter((id) => allowedIds.has(id)) ?? []);
@@ -107,20 +106,24 @@ export function SubjectsWorkspace({
     const item = subjects.find((s) => s.id === id);
     return item ? [item] : [];
   });
-  const filtered = subjects.filter((s) => {
-    const search = `${s.name} ${s.code ?? ""}`.toLocaleLowerCase("es");
-    return search.includes(term.trim().toLocaleLowerCase("es")) &&
-      (year === "todos" || String(s.year) === year) &&
-      (type === "todos" || s.type === type);
-  });
+  function matchesSubject(subject: Subject, query: string) {
+    const name = normalizeSearch(`${subject.name} ${subject.code ?? ""}`);
+    return normalizeSearch(query).split(/\s+/).every((word) => name.includes(word));
+  }
+  const [recordTerm, setRecordTerm] = useState("");
+  const [recordStatus, setRecordStatus] = useState("all");
+  const filtered = subjects.filter((s) => matchesSubject(s, term) &&
+    (year === "todos" || String(s.year) === year) && (type === "todos" || s.type === type));
+  const recordSubjects = subjects.filter((s) => matchesSubject(s, recordTerm) &&
+    (recordStatus === "all" || completedIds.has(s.id) === (recordStatus === "completed")));
   const years = [...new Set(subjects.map((s) => s.year))].sort((a, b) => (a ?? 99) - (b ?? 99));
   const types = [...new Set(subjects.map((s) => s.type).filter((x): x is string => x !== null))].sort();
   const totalPriority = priorities.reduce((sum, p) => sum + (preferences[p.key] ?? 0), 0);
   const filled = fields.filter((f) => preferences[f.key] !== null).length;
-  const readyToScore = false; // Se habilitará solo tras verificar perfiles, requisitos y procedencia.
 
   function markEdited() {
     setDirty(true);
+    if (canSave) onDirtyChange(true);
     setFeedback(undefined);
   }
   function toggleCompleted(id: string) {
@@ -147,6 +150,7 @@ export function SubjectsWorkspace({
     setShortlist(localShortlist);
     setPreferences(localPreferences);
     setDirty(true);
+    onDirtyChange(true);
     setFeedback({ error: false, text: "Revisa los datos importados y pulsa Guardar progreso para añadirlos a tu cuenta." });
   }
   async function save() {
@@ -158,6 +162,7 @@ export function SubjectsWorkspace({
       else {
         setVersion(result.version);
         setDirty(false);
+        onDirtyChange(false);
         setFeedback({ error: false, text: "Progreso guardado en tu cuenta." });
       }
     } catch {
@@ -166,27 +171,11 @@ export function SubjectsWorkspace({
       setPending(false);
     }
   }
-  async function selectCurrentPlan() {
-    setPending(true);
-    setFeedback(undefined);
-    try {
-      const result = await setCurrentStudyPlan(planId);
-      if ("error" in result) setFeedback({ error: true, text: result.error });
-      else {
-        setFeedback({ error: false, text: "Plan actual actualizado." });
-        router.refresh();
-      }
-    } catch {
-      setFeedback({ error: true, text: "No se ha podido actualizar tu plan actual." });
-    } finally {
-      setPending(false);
-    }
-  }
-  const tabItems: { id: SubjectTab; number: string; title: string; detail: string }[] = [
-    { id: "catalogo", number: "01", title: "Explorar", detail: `${subjects.length} asignaturas` },
-    { id: "expediente", number: "02", title: "Mi expediente", detail: `${completed.length} superadas` },
-    { id: "preferencias", number: "03", title: "Mis prioridades", detail: `${filled}/${fields.length} respuestas` },
-    { id: "comparar", number: "04", title: "Comparar", detail: `${shortlist.length}/3 seleccionadas` },
+  const tabItems: { id: SubjectTab; title: string }[] = [
+    { id: "catalogo", title: "Asignaturas" },
+    { id: "expediente", title: "Mi expediente" },
+    { id: "preferencias", title: "Mis prioridades" },
+    { id: "comparar", title: `Comparar (${shortlist.length})` },
   ];
 
   function scoreField(field: { key: Field; label: string; help: string }) {
@@ -211,74 +200,33 @@ export function SubjectsWorkspace({
   }
 
   return (
-    <section className="space-y-8" aria-label="Herramienta de decisión de asignaturas">
-      <header className="relative overflow-hidden border border-[var(--color-border-light)] bg-[var(--color-bg-card)] px-6 py-9 md:px-10">
-        <div className="absolute -right-16 -top-24 h-64 w-64 rounded-full bg-[var(--color-subjects)] opacity-[0.08] blur-3xl" aria-hidden="true" />
-        <div className="relative">
-          <span className="section-marker section-marker-subjects">TU PLAN ACADÉMICO</span>
-          <h2 className="font-display mt-5 max-w-4xl text-3xl leading-tight md:text-5xl">{degreeName}</h2>
-          <p className="mt-3 text-[var(--color-fg-dim)]">{planName}{centerName ? ` · ${centerName}` : ""}</p>
-          {synthetic ? (
-            <div role="status" className="mt-6 border-l-2 border-amber-400 bg-amber-400/5 p-4 text-sm leading-relaxed text-amber-200">
-              <strong>Plan generado para simulación.</strong> Los nombres y perfiles de las asignaturas no son oficiales. Puedes conocer el funcionamiento de la herramienta, pero estos datos no permiten orientar una matrícula real.
-            </div>
-          ) : (
-            <div className="mt-6 border-l-2 border-[var(--color-subjects)] bg-[var(--color-subjects)]/5 p-4 text-sm text-[var(--color-fg-dim)]">
-              Antes de decidir, consulta también la guía docente y los requisitos de matrícula vigentes de tu universidad.
-            </div>
-          )}
-        </div>
+    <section className={`space-y-5 ${canSave ? "pb-24" : ""}`} aria-label="Espacio de Asignaturas">
+      <header className="rounded-2xl border border-white/10 bg-[var(--color-bg-card)] p-5 sm:p-7">
+        <h2 className="text-2xl font-semibold">{degreeName}</h2>
+        <p className="mt-2 text-sm text-[var(--color-fg-dim)]">{[planName === degreeName ? null : planName, centerName].filter(Boolean).join(" · ")}</p>
+        <ul className="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-sm text-cyan-100">
+          <li>{subjects.length} asignaturas</li>
+          <li>{format.format(totalEcts)} ECTS del plan</li>
+          {canSave && <li>{format.format(earnedCredits)} ECTS superados · declarados</li>}
+        </ul>
+        {synthetic && <p className="mt-4 rounded-lg bg-amber-300/10 p-3 text-sm text-amber-200">Plan simulado. Sus asignaturas sirven para explorar la herramienta.</p>}
       </header>
 
-      <div className="grid grid-cols-2 gap-px overflow-hidden border border-[var(--color-border)] bg-[var(--color-border)] md:grid-cols-4">
-        {[
-          { name: "Asignaturas del catálogo", value: String(subjects.length) },
-          { name: synthetic ? "ECTS del plan simulado" : "ECTS del plan según catálogo", value: `${format.format(totalEcts)} ECTS` },
-          { name: "Créditos declarados superados", value: canSave ? `${format.format(earnedCredits)} ECTS` : "—" },
-          { name: "Alternativas en comparación", value: `${shortlist.length} / 3` },
-        ].map((metric) => (
-          <div key={metric.name} className="bg-[var(--color-bg-card)] px-5 py-6">
-            <p className="font-display text-2xl text-[var(--color-subjects)] md:text-3xl">{metric.value}</p>
-            <p className="mt-2 text-xs leading-relaxed text-[var(--color-fg-dim)]">{metric.name}</p>
-          </div>
-        ))}
-      </div>
-
-      {canSave && <div className="space-y-3 border-y border-[var(--color-border)] py-4">
-        <div className="flex flex-wrap items-center gap-3">
-          <button type="button" onClick={save} disabled={pending || !dirty} className="min-h-11 bg-[var(--color-subjects)] px-4 font-semibold text-[#07151b] disabled:opacity-40">Guardar progreso</button>
-          {currentPlan ? <span className="text-sm">Mi plan actual</span> :
-            <button type="button" onClick={selectCurrentPlan} disabled={pending} className="min-h-11 px-2 underline">Marcar como mi plan actual</button>}
-          {version === 0 && !dirty && <button type="button" onClick={importLocalProgress} disabled={pending} className="min-h-11 px-2 text-sm underline">Importar datos de este navegador</button>}
-          {pending && <span role="status" className="text-sm">Guardando…</span>}
-          {!pending && dirty && <span className="text-sm">Cambios sin guardar</span>}
-        </div>
-        {feedback && <p role={feedback.error ? "alert" : "status"} className={feedback.error ? "text-rose-300" : "text-cyan-200"}>{feedback.text}</p>}
-      </div>}
-
-      <nav aria-label="Fases de tu decisión" className="grid grid-cols-2 gap-2 md:grid-cols-4">
+      <nav aria-label="Secciones de Asignaturas" className="flex flex-wrap gap-2 rounded-xl border border-white/10 bg-[var(--color-bg-card)] p-2">
         {tabItems.map((item) => (
-          <button
-            key={item.id} type="button" aria-pressed={tab === item.id}
-            onClick={() => setTab(item.id)}
-            className={`group border px-4 py-4 text-left transition-colors ${tab === item.id
-              ? "border-[var(--color-subjects)] bg-[var(--color-bg-card)]"
-              : "border-[var(--color-border)] bg-[var(--color-bg-darker)] hover:border-[var(--color-border-light)]"}`}
-          >
-            <span className="font-mono text-xs text-[var(--color-subjects)]">{item.number} /</span>
-            <span className="mt-2 block font-heading text-sm md:text-base">{item.title}</span>
-            <span className="mt-1 block text-xs text-[var(--color-fg-dim)]">{!canSave && (item.id === "expediente" || item.id === "preferencias") ? "Acceso personal" : item.detail}</span>
+          <button key={item.id} type="button" aria-pressed={tab === item.id} onClick={() => setTab(item.id)}
+            className={`min-h-10 rounded-lg px-3 text-sm font-semibold transition sm:px-4 ${tab === item.id ? "bg-cyan-300/15 text-cyan-100" : "text-[var(--color-fg-dim)] hover:bg-white/5"}`}>
+            {item.title}
           </button>
         ))}
       </nav>
 
-        <div className="border border-[var(--color-border)] bg-[var(--color-bg-card)] p-5 md:p-9">
+      <div className="rounded-2xl border border-white/10 bg-[var(--color-bg-card)] p-5 sm:p-7">
           {tab === "catalogo" && (
             <div className="space-y-7">
               <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
                 <div>
-                  <span className="section-marker section-marker-subjects">01 / EXPLORAR</span>
-                  <h3 className="font-display mt-4 text-3xl md:text-4xl">CONOCE LAS ALTERNATIVAS.</h3>
+                  <h3 className="text-xl font-semibold">Asignaturas del plan</h3>
                   <p className="mt-2 text-sm text-[var(--color-fg-dim)]">Busca y filtra asignaturas. Puedes seleccionar hasta tres para compararlas.</p>
                 </div>
                 <button type="button" onClick={() => setTab("comparar")} className="border border-[var(--color-subjects)] px-5 py-3 text-sm font-semibold text-[var(--color-subjects)] hover:bg-[var(--color-subjects)]/10">
@@ -333,20 +281,31 @@ export function SubjectsWorkspace({
           {tab === "expediente" && canSave && (
             <div className="space-y-7">
               <div>
-                <span className="section-marker section-marker-subjects">02 / MI EXPEDIENTE</span>
-                <h3 className="font-display mt-4 text-3xl md:text-4xl">TU PUNTO DE PARTIDA.</h3>
-                <p className="mt-3 text-[var(--color-fg-dim)]">Marca únicamente las asignaturas que has aprobado. Son datos declarados por ti y no están certificados por tu universidad.</p>
+                <h3 className="text-xl font-semibold">Mi expediente</h3>
+                <p className="mt-3 text-[var(--color-fg-dim)]">Marca las asignaturas que has superado. El expediente se basa en tus datos declarados.</p>
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="border border-[var(--color-border-light)] p-5"><p className="text-3xl font-display text-[var(--color-subjects)]">{completed.length}</p><p className="mt-2 text-sm text-[var(--color-fg-dim)]">Asignaturas superadas declaradas</p></div>
                 <div className="border border-[var(--color-border-light)] p-5"><p className="text-3xl font-display text-[var(--color-subjects)]">{format.format(earnedCredits)}</p><p className="mt-2 text-sm text-[var(--color-fg-dim)]">ECTS declarados como superados</p></div>
               </div>
-              {years.map((y) => (
+              <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_12rem]">
+                <input type="search" aria-label="Buscar en mi expediente" placeholder="Buscar por nombre o código"
+                  value={recordTerm} onChange={(event) => setRecordTerm(event.target.value)}
+                  className="min-h-11 rounded-lg border border-white/15 bg-black/20 px-3 text-sm" />
+                <select aria-label="Estado en el expediente" value={recordStatus} onChange={(event) => setRecordStatus(event.target.value)}
+                  className="min-h-11 rounded-lg border border-white/15 bg-[var(--color-bg-darker)] px-3 text-sm">
+                  <option value="all">Todas</option>
+                  <option value="completed">Superadas</option>
+                  <option value="pending">Sin marcar</option>
+                </select>
+              </div>
+              {!recordSubjects.length && <p className="py-5 text-sm text-[var(--color-fg-dim)]">No hay asignaturas con estos filtros.</p>}
+              {years.filter((y) => recordSubjects.some((subject) => subject.year === y)).map((y) => (
                 <div key={y ?? "null"} className="border border-[var(--color-border)]">
                   <h4 className="bg-[var(--color-bg-darker)] px-5 py-4 font-heading text-[var(--color-fg)]">{y === null ? "Sin curso asignado" : `${y}.º curso`}</h4>
                   <div className="divide-y divide-[var(--color-border)]">
-                    {subjects.filter((s) => s.year === y).map((s) => (
-                      <label key={s.id} className="flex cursor-pointer items-center gap-4 px-5 py-4 hover:bg-white/[0.03]">
+                    {recordSubjects.filter((s) => s.year === y).map((s) => (
+                      <label key={s.id} className={`flex cursor-pointer items-center gap-4 px-5 py-4 ${completedIds.has(s.id) ? "bg-cyan-300/10" : "hover:bg-white/5"}`}>
                         <input type="checkbox" checked={completedIds.has(s.id)} onChange={() => toggleCompleted(s.id)} disabled={pending} className="h-4 w-4 accent-cyan-400" />
                         <span className="min-w-0 flex-1 text-sm">{s.name}</span>
                         <span className="shrink-0 font-mono text-xs text-[var(--color-fg-dim)]">{format.format(s.ects)} ECTS</span>
@@ -362,9 +321,8 @@ export function SubjectsWorkspace({
           {tab === "preferencias" && canSave && (
             <div className="space-y-9">
               <div>
-                <span className="section-marker section-marker-subjects">03 / MIS PRIORIDADES</span>
-                <h3 className="font-display mt-4 text-3xl md:text-4xl">DECIDE CON TUS CRITERIOS.</h3>
-                <p className="mt-3 text-[var(--color-fg-dim)]">Tus respuestas pertenecen a tu perfil de decisión; no son características inventadas de las asignaturas.</p>
+                <h3 className="text-xl font-semibold">Mis prioridades</h3>
+                <p className="mt-3 text-[var(--color-fg-dim)]">Indica cómo prefieres aprender y qué criterios pesan más en tu elección.</p>
                 <p className="mt-3 font-mono text-xs text-[var(--color-subjects)]">{filled} / {fields.length} RESPUESTAS</p>
               </div>
               <div><h4 className="font-heading text-xl">Cómo quieres aprender</h4><p className="mt-2 text-sm text-[var(--color-fg-dim)]">Escala personal de 0 a 10.</p>{learning.map(scoreField)}</div>
@@ -384,7 +342,6 @@ export function SubjectsWorkspace({
                 )}
                 {priorities.every((p) => preferences[p.key] !== null) && totalPriority === 0 && <p className="mt-5 text-sm text-amber-300">Asigna un valor positivo a algún criterio si deseas ponderarlos.</p>}
               </div>
-              <p className="text-xs text-[var(--color-muted)]">Puedes guardar estas preferencias en tu cuenta para retomarlas al volver al plan.</p>
             </div>
           )}
 
@@ -392,9 +349,8 @@ export function SubjectsWorkspace({
             <div className="space-y-7">
               <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
                 <div>
-                  <span className="section-marker section-marker-subjects">04 / COMPARACIÓN</span>
-                  <h3 className="font-display mt-4 text-3xl md:text-4xl">COMPARA CON CRITERIO.</h3>
-                  <p className="mt-3 text-sm text-[var(--color-fg-dim)]">Compara atributos documentados en el catálogo. La herramienta no elegirá por ti.</p>
+                  <h3 className="text-xl font-semibold">Comparación de asignaturas</h3>
+                  <p className="mt-3 text-sm text-[var(--color-fg-dim)]">Consulta en paralelo los créditos, el tipo y el periodo de cada asignatura.</p>
                 </div>
                 <button type="button" onClick={() => setTab("catalogo")} className="border border-[var(--color-subjects)] px-5 py-3 text-sm text-[var(--color-subjects)] hover:bg-[var(--color-subjects)]/10">Elegir asignaturas →</button>
               </div>
@@ -404,7 +360,6 @@ export function SubjectsWorkspace({
                 <div className="grid gap-4 md:grid-cols-3">
                   {selectedSubjects.map((s) => (
                     <article key={s.id} className="flex flex-col border border-[var(--color-border-light)] bg-[var(--color-bg-darker)] p-5">
-                      <p className="font-mono text-xs text-[var(--color-subjects)]">ALTERNATIVA</p>
                       <h4 className="mt-3 min-h-16 font-display text-xl leading-snug">{s.name}</h4>
                       <dl className="mt-5 flex-1 divide-y divide-[var(--color-border)] text-sm">
                         {[
@@ -419,22 +374,24 @@ export function SubjectsWorkspace({
                 </div>
               )}
               {!signedIn && !synthetic && <p className="text-sm">Tu selección es temporal. <Link href={loginHref} className="underline">Inicia sesión</Link> para crear y guardar tus comparaciones.</p>}
-              {!readyToScore && (
-                <div className="border-l-2 border-amber-400 bg-amber-400/5 px-5 py-4 text-sm leading-relaxed text-amber-200">
-                  <strong>Evaluación multicriterio no disponible todavía.</strong> El catálogo no dispone de perfiles académicos/profesionales y requisitos oficiales suficientemente verificados para calcular afinidades, esfuerzo o elegibilidad. No mostramos puntuaciones ficticias.
-                </div>
-              )}
-              <div className="flex flex-wrap gap-3">
-                <button type="button" onClick={() => setTab("preferencias")} className="border border-[var(--color-border-light)] px-5 py-3 text-sm hover:border-[var(--color-subjects)]">Revisar prioridades</button>
-                <button type="button" onClick={() => setTab("expediente")} className="border border-[var(--color-border-light)] px-5 py-3 text-sm hover:border-[var(--color-subjects)]">Revisar expediente</button>
-              </div>
+              {shortlist.length > 0 && <p className="text-sm text-[var(--color-fg-dim)]">La comparación se basa en los datos disponibles del catálogo.</p>}
             </div>
           )}
         </div>
-      <footer className="flex flex-col justify-between gap-3 border-t border-[var(--color-border)] py-5 text-sm text-[var(--color-fg-dim)] md:flex-row md:items-center">
-        <span>Tu decisión, con información trazable. {synthetic ? "Este plan es simulado." : "Verifica las condiciones oficiales de matrícula."}</span>
-        <Link href="/explorar/titulaciones" className="font-semibold text-[var(--color-subjects)] hover:underline">Explorar titulaciones →</Link>
-      </footer>
+      {canSave && <div className="fixed inset-x-0 bottom-0 z-40 border-t border-white/15 bg-[#15101e] pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_30px_#0008]">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-5 py-3 md:px-9">
+          <div className="min-w-0 text-sm">
+            <p role={feedback?.error ? "alert" : "status"} className={feedback?.error ? "text-rose-300" : "text-[var(--color-fg-dim)]"}>
+              {feedback?.text ?? (dirty ? "Cambios sin guardar" : version ? "Progreso guardado" : "Guarda tu progreso para retomarlo después")}
+            </p>
+            {version === 0 && !dirty && <button type="button" onClick={importLocalProgress} disabled={pending} className="mt-1 text-xs text-cyan-200 underline">Importar datos de este navegador</button>}
+          </div>
+          <button type="button" onClick={save} disabled={pending || !dirty}
+            className="min-h-11 rounded-lg bg-cyan-300 px-5 text-sm font-semibold text-[#07151b] hover:bg-cyan-200 disabled:opacity-45">
+            {pending ? "Guardando…" : "Guardar progreso"}
+          </button>
+        </div>
+      </div>}
     </section>
   );
 }

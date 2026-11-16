@@ -16,7 +16,15 @@ function authConfig() {
     ["localhost", "127.0.0.1", "[::1]"].includes(origin.hostname);
   if (origin.protocol !== "https:" && !localHttp) return null;
 
-  return { origin, secret: BETTER_AUTH_SECRET, smtpUrl: AUTH_SMTP_URL, from: AUTH_EMAIL_FROM };
+  const trustedOrigins = localHttp
+    ? ["localhost", "127.0.0.1", "[::1]"].map((hostname) => {
+      const alias = new URL(origin);
+      alias.hostname = hostname;
+      return alias.origin;
+    })
+    : [];
+
+  return { origin, trustedOrigins, secret: BETTER_AUTH_SECRET, smtpUrl: AUTH_SMTP_URL, from: AUTH_EMAIL_FROM };
 }
 
 function createAuth(config: NonNullable<ReturnType<typeof authConfig>>) {
@@ -39,6 +47,7 @@ function createAuth(config: NonNullable<ReturnType<typeof authConfig>>) {
     appName: "AAAhoraQue",
     telemetry: { enabled: false },
     baseURL: config.origin.origin,
+    trustedOrigins: config.trustedOrigins,
     secret: config.secret,
     database: drizzleAdapter(db, {
       provider: "pg",

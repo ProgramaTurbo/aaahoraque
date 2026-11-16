@@ -32,20 +32,21 @@ export function AccountForm({ mode, next = "/panel", token, verified, verificati
     const data = new FormData(event.currentTarget);
     const email = String(data.get("email") ?? "").trim().toLowerCase();
     const password = String(data.get("password") ?? "");
-    const origin = window.location.origin;
     setBusy(true);
     setError("");
     setReceipt("");
     try {
       if (mode === "login") {
-        const result = await authClient.signIn.email({ email, password, callbackURL: origin + next, rememberMe: true });
+        const result = await authClient.signIn.email({ email, password, callbackURL: next, rememberMe: true });
         if (!result.error) {
           window.location.assign(next);
           return;
         }
         setError(result.error.code === "EMAIL_NOT_VERIFIED"
           ? "Verifica el correo antes de entrar. Revisa también el correo no deseado."
-          : result.error.status === 429 ? "Demasiados intentos. Espera un momento y vuelve a intentarlo."
+          : result.error.code === "INVALID_CALLBACK_URL" || result.error.code === "INVALID_ORIGIN"
+            ? "Abre la aplicación desde la dirección configurada para iniciar sesión."
+            : result.error.status === 429 ? "Demasiados intentos. Espera un momento y vuelve a intentarlo."
             : "No se ha podido iniciar sesión. Revisa el correo y la contraseña.");
       } else if (mode === "register") {
         const name = String(data.get("name") ?? "").trim();
@@ -53,7 +54,7 @@ export function AccountForm({ mode, next = "/panel", token, verified, verificati
           setError("Indica el nombre que quieres mostrar.");
           return;
         }
-        const callbackURL = origin + accountPath("/login", next) + "&verified=1";
+        const callbackURL = accountPath("/login", next) + "&verified=1";
         const result = await authClient.signUp.email({ name, email, password, callbackURL });
         if (result.error) {
           setError("No se ha podido crear la cuenta. Revisa los datos e inténtalo de nuevo.");
@@ -61,7 +62,7 @@ export function AccountForm({ mode, next = "/panel", token, verified, verificati
         }
         setReceipt("Revisa tu correo para verificar la cuenta y volver a la aplicación.");
       } else if (mode === "recovery") {
-        const result = await authClient.requestPasswordReset({ email, redirectTo: origin + "/restablecer-clave" });
+        const result = await authClient.requestPasswordReset({ email, redirectTo: "/restablecer-clave" });
         if (result.error) {
           setError("No se ha podido procesar la solicitud. Inténtalo de nuevo.");
           return;
