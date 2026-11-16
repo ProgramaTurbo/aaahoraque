@@ -6,6 +6,9 @@ import {
   getSubjectPlans,
   getPlanSubjects,
 } from "@/lib/subjects/catalog";
+import { getAccountUser } from "@/lib/account/session";
+import { getOfficialPlanContext, getSavedPlanProgress, getStudentProfile, subjectsPlanPath } from "@/lib/account/profile";
+import { subjectTab } from "@/lib/subjects/progress";
 import { SubjectsWorkspace } from "@/features/subjects/subjects-workspace";
 
 export const dynamic = "force-dynamic";
@@ -14,23 +17,31 @@ export const metadata: Metadata = {
   description: "Explora tu plan, declara las asignaturas superadas y compara alternativas con información académica trazable.",
 };
 
-type SearchParams = Promise<{ university?: string; plan?: string }>;
+type SearchParams = Promise<{ university?: string; plan?: string; section?: string }>;
 const selectClass = "w-full border border-[var(--color-border-light)] bg-[var(--color-bg-card)] px-5 py-4 text-[var(--color-fg)] focus:border-[var(--color-subjects)] focus:outline-none";
 
 export default async function SubjectsPage({ searchParams }: { searchParams: SearchParams }) {
   const params = await searchParams;
+  const user = await getAccountUser().catch(() => null);
   const context = await (async () => {
     try {
+      const profile = user ? await getStudentProfile(user.id) : null;
       const universities = await getSubjectUniversities();
       const isInitialVisit = !params.university && !params.plan;
-      const demo = isInitialVisit ? await getDefaultSubjectDemoContext() : null;
-      const universityId = params.university ?? demo?.universityId;
+      const current = isInitialVisit && profile?.currentStudyPlanId
+        ? await getOfficialPlanContext(profile.currentStudyPlanId)
+        : null;
+      const demo = isInitialVisit && !current ? await getDefaultSubjectDemoContext() : null;
+      const universityId = params.university ?? current?.universityId ?? demo?.universityId;
       const selectedUniversity = universities.find((u) => u.id === universityId);
       const plans = selectedUniversity ? await getSubjectPlans(selectedUniversity.id) : [];
-      const planId = params.plan ?? (isInitialVisit ? demo?.planId : undefined);
+      const planId = params.plan ?? current?.id ?? demo?.planId;
       const selectedPlan = plans.find((p) => p.id === planId);
       const subjects = selectedPlan ? await getPlanSubjects(selectedPlan.id) : [];
-      return { universities, selectedUniversity, plans, selectedPlan, subjects };
+      const progress = user && selectedPlan?.status === "official"
+        ? await getSavedPlanProgress(user.id, selectedPlan.id)
+        : null;
+      return { universities, selectedUniversity, plans, selectedPlan, subjects, progress, currentPlanId: profile?.currentStudyPlanId };
     } catch (error) {
       console.error("[SUBJECTS] Error al cargar el catálogo:", error);
       return null;
@@ -49,7 +60,7 @@ export default async function SubjectsPage({ searchParams }: { searchParams: Sea
       </main>
     );
   }
-  const { universities, selectedUniversity, plans, selectedPlan, subjects } = context;
+  const { universities, selectedUniversity, plans, selectedPlan, subjects, progress, currentPlanId } = context;
 
   return (
     <main className="bg-textured min-h-[calc(100vh-80px)]">
@@ -107,9 +118,14 @@ export default async function SubjectsPage({ searchParams }: { searchParams: Sea
           )}
         </section>
 
-        {selectedPlan ? (
+        {selectedPlan && selectedUniversity ? (
           <SubjectsWorkspace
-            key={selectedPlan.id}
+            key={`${selectedPlan.id}:${user?.id ?? "guest"}`}
+            signedIn={Boolean(user)}
+            initialTab={subjectTab(params.section)}
+            initialProgress={progress}
+            currentPlan={currentPlanId === selectedPlan.id}
+            returnTo={subjectsPlanPath({ id: selectedPlan.id, universityId: selectedUniversity.id })}
             planId={selectedPlan.id}
             planName={selectedPlan.planName}
             degreeName={selectedPlan.degreeName}
