@@ -1,6 +1,7 @@
 import "server-only";
 
 import { sql } from "drizzle-orm";
+import { isCatalogPlanVisible } from "@/lib/catalog/plan-visibility";
 import { db } from "@/lib/db";
 
 // Identificador verificado del programa conjunto GII + ADE de UNIZAR, plan 634.
@@ -82,21 +83,8 @@ export async function getSubjectPlans(universityId: string) {
       JOIN degrees d ON d.id = o.degree_id
       LEFT JOIN academic_centers c ON c.id = o.academic_center_id
       WHERE o.university_id = ${universityId}::uuid
-        AND (
-          p.status = 'official'
-          OR (
-            p.status = 'synthetic'
-            AND NOT EXISTS (
-              SELECT 1
-              FROM degree_offerings o2
-              JOIN study_plans p2 ON p2.degree_offering_id = o2.id
-              WHERE o2.university_id = o.university_id
-                AND o2.degree_id = o.degree_id
-                AND o2.academic_center_id IS NOT DISTINCT FROM o.academic_center_id
-                AND p2.status = 'official'
-            )
-          )
-        )
+        AND p.status IN ('official', 'synthetic')
+        AND ${isCatalogPlanVisible(sql`p.status`, sql`p.degree_offering_id`)}
 
       UNION ALL
 
@@ -148,6 +136,7 @@ export async function getPlanSubjects(planId: string) {
     JOIN study_plans p ON p.id = s.study_plan_id
     WHERE s.study_plan_id = ${planId}::uuid
       AND p.status IN ('official', 'synthetic')
+      AND ${isCatalogPlanVisible(sql`p.status`, sql`p.degree_offering_id`)}
     ORDER BY
       s.academic_year NULLS LAST,
       s.semester NULLS LAST,

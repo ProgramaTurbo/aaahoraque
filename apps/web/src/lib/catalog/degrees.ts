@@ -1,7 +1,8 @@
 import "server-only";
-import { and, asc, eq, ilike, or } from "drizzle-orm";
+import { and, asc, eq, ilike, inArray, or } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { universities, academicCenters, degrees, degreeOfferings, studyPlans, subjects } from "@/lib/db/schema";
+import { isCatalogPlanVisible } from "./plan-visibility";
 
 // Lightweight, additive catalog read: no plan/subject joins in the listing.
 export async function getDegreePage(query: string, university: string | null, page: number) {
@@ -28,10 +29,18 @@ export async function getDegreeUniversities() {
 
 export async function getDegreePlans(offeringId: string) {
   const plans = await db.select({ id: studyPlans.id, name: studyPlans.name, totalEcts: studyPlans.totalEcts })
-    .from(studyPlans).where(eq(studyPlans.degreeOfferingId, offeringId)).orderBy(asc(studyPlans.name), asc(studyPlans.id));
+    .from(studyPlans)
+    .where(and(
+      eq(studyPlans.degreeOfferingId, offeringId),
+      isCatalogPlanVisible(studyPlans.status, studyPlans.degreeOfferingId),
+    ))
+    .orderBy(asc(studyPlans.name), asc(studyPlans.id));
+  if (plans.length === 0) return [];
+
   const rows = await db.select({ id: subjects.id, planId: subjects.studyPlanId, name: subjects.name, ects: subjects.ects })
-    .from(subjects).innerJoin(studyPlans, eq(subjects.studyPlanId, studyPlans.id))
-    .where(eq(studyPlans.degreeOfferingId, offeringId)).orderBy(asc(subjects.name), asc(subjects.id));
+    .from(subjects)
+    .where(inArray(subjects.studyPlanId, plans.map((plan) => plan.id)))
+    .orderBy(asc(subjects.name), asc(subjects.id));
   return plans.map((plan) => ({ ...plan, totalEcts: Number(plan.totalEcts),
     subjects: rows.filter((s) => s.planId === plan.id).map((s) => ({ id: s.id, name: s.name, ects: Number(s.ects) })) }));
 }

@@ -1,6 +1,6 @@
 import "server-only";
 
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 
 import { db } from "@/lib/db";
 import {
@@ -11,6 +11,7 @@ import {
   studyPlans,
   subjects,
 } from "@/lib/db/schema";
+import { isCatalogPlanVisible } from "./plan-visibility";
 
 /**
  * Recupera el catálogo académico compartido.
@@ -62,7 +63,10 @@ export async function getCatalogOfferings() {
     )
     .leftJoin(
       studyPlans,
-      eq(studyPlans.degreeOfferingId, degreeOfferings.id)
+      and(
+        eq(studyPlans.degreeOfferingId, degreeOfferings.id),
+        isCatalogPlanVisible(studyPlans.status, studyPlans.degreeOfferingId)
+      )
     )
     .leftJoin(
       subjects,
