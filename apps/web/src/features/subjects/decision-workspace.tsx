@@ -4,8 +4,9 @@ import { useEffect, useState, useTransition } from "react";
 import { deleteScenario, saveDecision } from "@/app/subjects/decision/actions";
 import { addFavorite, removeFavorite } from "@/app/panel/favorite-actions";
 import { CatalogSearch } from "./catalog-search";
+import { comparisonLimit, StudentObservatory } from "./student-observatory";
 import {
-  creditsFormat, isOutsidePeriod, isPeriod, periodNames, selectionCredits, semesterName, subjectTypes,
+  creditsFormat, isOutsidePeriod, isPeriod, periodNames, selectionCredits, semesterName,
   type DecisionDraft, type DecisionSubject, type DecisionTab, type OfficialEvidence, type Period,
 } from "@/lib/subjects/decision";
 import { emptySubjectPreferences, preferenceLabels, subjectPreferenceFields, type SubjectPreferences, type SubjectProgress } from "@/lib/subjects/progress";
@@ -16,7 +17,7 @@ type SavedDecision = DecisionDraft & {
 type ScenarioForm = DecisionDraft & { id?: string; version: number; name: string; preferences: SubjectPreferences };
 type DraftForm = DecisionDraft & { id?: string; version: number };
 type Props = {
-  planId: string; subjects: DecisionSubject[]; progress: SubjectProgress | null;
+  planId: string; totalCredits: number; subjects: DecisionSubject[]; progress: SubjectProgress | null;
   decisions: SavedDecision[]; evidence: OfficialEvidence[]; favorites: { id: string; subjectId: string }[];
   initialTab: DecisionTab; scenarioId?: string; subjectId?: string;
 };
@@ -26,19 +27,18 @@ const primary = "rounded-lg bg-subjects-fill px-4 py-2.5 text-sm font-semibold t
 const secondary = "rounded-lg border border-control-border px-3 py-2 text-sm font-semibold text-fg hover:bg-bg-card-hover disabled:opacity-50";
 const field = "mt-1 block w-full rounded-lg border border-control-border bg-bg-card px-3 py-2 text-fg";
 const muted = "text-sm text-[var(--color-fg-dim)]";
-const link = "font-semibold text-subjects underline underline-offset-2";
 const defaultDraft: DraftForm = { period: "1", target: 30, subjectIds: [], version: 0 };
 
 function ects(value: number) {
   return `${creditsFormat.format(value)} ECTS`;
 }
 
-export function DecisionWorkspace({ planId, subjects, progress, decisions, evidence, favorites, initialTab, scenarioId, subjectId }: Props) {
+export function DecisionWorkspace({ planId, totalCredits, subjects, progress, decisions, evidence, favorites, initialTab, scenarioId, subjectId }: Props) {
   const [pending, startTransition] = useTransition();
   const [message, setMessage] = useState<{ text: string; error?: boolean } | null>(null);
   const [tab, setTab] = useState<DecisionTab>(initialTab);
-  const [compared, setCompared] = useState<string[]>([...new Set([subjectId, ...(progress?.shortlist ?? [])].filter((id): id is string =>
-    Boolean(id && subjects.some((subject) => subject.id === id))))].slice(0, 3));
+  const [compared, setCompared] = useState<string[]>(() => [...new Set([subjectId, ...(progress?.shortlist ?? [])].filter((id): id is string =>
+    Boolean(id && subjects.some((subject) => subject.id === id))))].slice(0, comparisonLimit));
   const [draft, setDraft] = useState<DraftForm>(() => decisions.find((row) => row.kind === "draft") ?? defaultDraft);
   const scenarios = decisions.filter((row) => row.kind === "scenario");
   const [draftDirty, setDraftDirty] = useState(false);
@@ -60,11 +60,11 @@ export function DecisionWorkspace({ planId, subjects, progress, decisions, evide
   const byId = new Map(subjects.map((subject) => [subject.id, subject]));
   const completed = new Set(progress?.completed ?? []);
   const favoriteIds = new Map(favorites.map((item) => [item.subjectId, item.id]));
-  const evidenceById = new Map(evidence.map((item) => [item.subjectId, item]));
   const priorities = progress ? subjectPreferenceFields.filter((key) => {
     const value = progress.preferences[key];
     return value !== null && value > 0;
-  }).sort((a, b) => (progress.preferences[b] ?? 0) - (progress.preferences[a] ?? 0)).slice(0, 3) : [];
+  }).sort((a, b) => (progress.preferences[b] ?? 0) - (progress.preferences[a] ?? 0)).slice(0, 3)
+    .map((key) => ({ label: preferenceLabels[key], value: progress.preferences[key] ?? 0 })) : [];
   const scenarioA = scenarios.find((item) => item.id === comparison.first);
   const scenarioB = scenarios.find((item) => item.id === comparison.second);
   const selectedSubjects = (ids: string[]) => ids.flatMap((id) => {
@@ -148,7 +148,7 @@ export function DecisionWorkspace({ planId, subjects, progress, decisions, evide
   }
 
   const tabs = [
-    { id: "decidir", label: "Comparar asignaturas" },
+    { id: "decidir", label: "Observatorio de asignaturas" },
     { id: "semestre", label: "Próximo semestre" },
     { id: "escenarios", label: "Mis escenarios" },
   ] as const;
@@ -159,55 +159,22 @@ export function DecisionWorkspace({ planId, subjects, progress, decisions, evide
     </nav>
     {message && <p role={message.error ? "alert" : "status"} className={`rounded-lg border border-subjects-border bg-subjects-surface p-3 text-sm ${message.error ? "font-semibold" : ""}`}>{message.text}</p>}
 
-    {tab === "decidir" && <section aria-labelledby="decision-compare" className="space-y-4">
-      <div className={card}>
-        <h2 id="decision-compare" className="text-xl font-semibold">Comparar asignaturas</h2>
-        <p className={`${muted} mt-2`}>Elige hasta tres alternativas. Contrasta los créditos, cuándo se cursan, la evaluación y los resultados históricos cuando estén disponibles.</p>
-        {priorities.length > 0 && <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
-          <span className={muted}>Tus prioridades más altas</span>
-          {priorities.map((key) => <span key={key} className="rounded-full border border-subjects-border bg-subjects-surface px-2.5 py-1 text-subjects">
-            {preferenceLabels[key]} · {progress?.preferences[key]}/10
-          </span>)}
-        </div>}
-        <div className="mt-4 max-w-2xl">
-          <SubjectSearch label="Añadir una asignatura a la comparación" subjects={subjects} selected={compared} disabled={compared.length >= 3}
-            onSelect={(id) => setCompared([...compared, id])} />
-          {compared.length >= 3 && <p className={`${muted} mt-2`}>Quita una alternativa para añadir otra.</p>}
-        </div>
-        {compared.length >= 2 && <button type="button" className={`${secondary} mt-4`} onClick={() => newScenario(compared)}>Crear un escenario con esta selección</button>}
-      </div>
-      <div className="grid gap-4 lg:grid-cols-3">
-        {selectedSubjects(compared).map((item) => <article key={item.id} className={`${card} flex flex-col gap-3`}>
-          <div className="flex items-start justify-between gap-3">
-            <h3 className="text-lg font-semibold">{item.name}</h3>
-            <button type="button" className={secondary} aria-label={`Quitar ${item.name} de la comparación`}
-              onClick={() => setCompared(compared.filter((id) => id !== item.id))}>Quitar</button>
-          </div>
-          <dl className="grid grid-cols-2 gap-2 text-sm">
-            <div><dt className={muted}>Créditos</dt><dd>{ects(item.ects)}</dd></div>
-            <div><dt className={muted}>Curso</dt><dd>{item.year ?? "Sin indicar"}</dd></div>
-            <div><dt className={muted}>Periodo</dt><dd>{semesterName(item.semester)}</dd></div>
-            <div><dt className={muted}>Tipo</dt><dd>{subjectTypes[item.type ?? ""] ?? "Sin indicar"}</dd></div>
-          </dl>
-          {(completed.has(item.id) || item.knownUnavailable) && <p className="rounded-lg bg-subjects-surface p-2 text-sm">
-            {[completed.has(item.id) ? "Marcada como superada en tu expediente." : null,
-              item.knownUnavailable ? "El catálogo la indica como no ofertada." : null].filter(Boolean).join(" ")}
-          </p>}
-          <SubjectEvidence evidence={evidenceById.get(item.id)} />
-          {item.sourceUrl && <a href={item.sourceUrl} className={`${link} text-sm`}>Fuente del catálogo</a>}
-          <DraftFit item={item} draft={draft} selected={selectedSubjects(draft.subjectIds)} />
-          <div className="mt-auto flex flex-wrap gap-2 pt-2">
-            <button type="button" className={primary} onClick={() => addToDraft(item.id)}>Añadir al semestre</button>
-            <button type="button" className={secondary} disabled={pending} aria-pressed={favoriteIds.has(item.id)}
-              onClick={() => run(async () => {
-                const favorite = favoriteIds.get(item.id);
-                const result = favorite ? await removeFavorite(favorite) : await addFavorite({ kind: "subject", id: item.id });
-                setMessage({ text: result.error ?? (favorite ? "Asignatura retirada de favoritos." : "Asignatura guardada en favoritos."), error: Boolean(result.error) });
-              })}>{favoriteIds.has(item.id) ? "Quitar de favoritos" : "Guardar en favoritos"}</button>
-          </div>
-        </article>)}
-      </div>
-    </section>}
+    <div hidden={tab !== "decidir"}>
+      <StudentObservatory
+        subjects={subjects} totalCredits={totalCredits} completed={completed} evidence={evidence}
+        compared={compared} setCompared={setCompared} initialSubjectId={subjectId} draft={draft}
+        favorites={favoriteIds} priorities={priorities} pending={pending} onDraft={addToDraft}
+        onScenario={() => newScenario(compared)}
+        onFavorite={(id) => run(async () => {
+          const favorite = favoriteIds.get(id);
+          const result = favorite ? await removeFavorite(favorite) : await addFavorite({ kind: "subject", id });
+          setMessage({
+            text: result.error ?? (favorite ? "Asignatura retirada de favoritos." : "Asignatura guardada en favoritos."),
+            error: Boolean(result.error),
+          });
+        })}
+      />
+    </div>
 
     {tab === "semestre" && <section className={card} aria-labelledby="semester-title">
       <h2 id="semester-title" className="text-xl font-semibold">Próximo semestre</h2>
@@ -304,17 +271,6 @@ export function DecisionWorkspace({ planId, subjects, progress, decisions, evide
   </div>;
 }
 
-function DraftFit({ item, draft, selected }: { item: DecisionSubject; draft: DecisionDraft; selected: DecisionSubject[] }) {
-  if (draft.subjectIds.includes(item.id)) return <p className={muted}>Ya figura en tu borrador del semestre.</p>;
-  const valid = validTarget(draft.target);
-  const projected = selectionCredits([...selected, item]);
-  if (!valid && !isOutsidePeriod(item, draft.period)) return null;
-  return <p className={muted}>
-    {isOutsidePeriod(item, draft.period) && <strong className="text-subjects">Figura fuera del periodo del borrador. </strong>}
-    {valid && <>Si la añades, el borrador quedará en {ects(projected)} de {ects(draft.target)}.</>}
-  </p>;
-}
-
 function validTarget(value: number) {
   return Number.isInteger(value) && value >= 1 && value <= 120;
 }
@@ -382,26 +338,6 @@ function SelectionWarnings({ subject, completed, period, contextual }: { subject
     subject.semester === null ? "Periodo sin confirmar" : null,
   ].filter(Boolean);
   return notes.length ? <p className="mt-1 text-sm font-semibold text-subjects">{contextual && <strong>{subject.name} · </strong>}{notes.join(" · ")}</p> : null;
-}
-
-function SubjectEvidence({ evidence }: { evidence?: OfficialEvidence }) {
-  const details = evidence?.guide;
-  return <div className={muted}>
-    {details ? <details className="rounded-lg border border-border p-2.5">
-      <summary className="cursor-pointer font-semibold text-fg">Guía docente</summary>
-      {details.program && <><h4 className="mt-2 font-semibold text-fg">Programa</h4><p className="whitespace-pre-line">{details.program}</p></>}
-      {details.assessment && <><h4 className="mt-2 font-semibold text-fg">Evaluación</h4><p className="whitespace-pre-line">{details.assessment}</p></>}
-      <a className={link} href={details.sourceUrl}>Consultar guía completa</a>
-    </details> : <p>Evaluación sin datos en el catálogo.</p>}
-    {evidence?.grades.length ? <div className="mt-2">
-      <h4 className="font-semibold text-fg">Resultados históricos oficiales</h4>
-      <ul className="mt-1 space-y-1">
-        {evidence.grades.map((row, index) => <li key={`${row.course}:${row.sourceUrl}:${index}`}>
-          {row.course}: {row.passed} aprobados de {row.total} (incluye no presentados) · <a className={link} href={row.sourceUrl}>Fuente</a>
-        </li>)}
-      </ul>
-    </div> : null}
-  </div>;
 }
 
 function ScenarioComparison({ first, second, subjects, completed }: {

@@ -2,8 +2,9 @@
 
 import { useMemo, useState } from "react";
 import type { ReactNode, ChangeEvent } from "react";
+import { GuideExtract, ObservatoryBars } from "./observatory-charts";
 import type {
-  Demo716Payload, DemoSubject, SubjectStats, MentionYear,
+  Demo716Payload, DemoSubject, SubjectStats,
 } from "@/lib/subjects/demo716-types";
 
 type Category = "A" | "B" | "C" | "D" | "E" | "F";
@@ -104,16 +105,7 @@ function Empty({why}:{why?:string}) {
   return <div className="flex min-h-32 items-center justify-center border border-dashed border-[var(--color-border-light)] px-5 text-center text-sm text-[var(--color-fg-dim)]">{why??"Datos insuficientes con estos filtros."}</div>;
 }
 function BarChart({values,unit="",maxRows=9,highlight=[]}:{values:{id:string;name:string;value:number|null;n?:number}[];unit?:string;maxRows?:number;highlight?:string[]}){
-  const usable=values.filter(v=>v.value!==null) as {id:string;name:string;value:number;n?:number}[];
-  if(!usable.length) return <Empty/>;
-  const vmax=Math.max(...usable.map(v=>v.value),0.01);
-  return <div className="max-h-[320px] space-y-2.5 overflow-y-auto pr-1" role="img" aria-label={`Comparación de ${usable.length} asignaturas`}>
-    {usable.slice(0,maxRows===-1?undefined:maxRows).map(v=><div key={v.id} title={`${v.name}: ${fmt(v.value)}${unit}${v.n!==undefined?` · n=${ni.format(v.n)}`:""}`}>
-      <div className="mb-1 flex items-baseline justify-between gap-3 text-xs"><span className={`min-w-0 truncate ${highlight.includes(v.id)?"font-semibold text-[var(--color-subjects)]":"text-[var(--color-fg)]"}`}>{v.name}</span><span className="shrink-0 font-mono tabular-nums">{fmt(v.value)}{unit}</span></div>
-      <div className="h-2 overflow-hidden rounded-sm bg-bg-darker"><div className={`h-full ${highlight.includes(v.id)?"bg-[var(--color-subjects)]":"bg-chart-aqua"}`} style={{width:`${Math.min(100,percent(v.value,vmax))}%`}}/></div>
-    </div>)}
-    {maxRows>0&&usable.length>maxRows&&<p className="text-xs text-[var(--color-fg-dim)]">Mostradas {maxRows} de {usable.length}. Filtra por mención o selecciona asignaturas para reducir la lista.</p>}
-  </div>;
+  return <ObservatoryBars values={values} unit={unit} maxRows={maxRows} highlight={highlight} label="Comparación de asignaturas" />;
 }
 function Breakdown({values}:{values:{label:string;n:number;color:string}[]}){
   const total=values.reduce((a,b)=>a+b.n,0);
@@ -145,7 +137,7 @@ function Scatter({points,xLabel,yLabel,xMax,yMax,scale=false}:{points:{name:stri
   </svg><p className="mt-2 text-[11px] text-[var(--color-fg-dim)]">Pasa el cursor sobre cada punto para ver la asignatura y su muestra.</p></div>;
 }
 function Transcript({text,sourceUrl,kind="Guía oficial"}:{text:string;sourceUrl?:string;kind?:string}){
-  return <div className="rounded-sm bg-bg-darker p-4 text-xs leading-relaxed text-[var(--color-fg-dim)]"><p className="max-h-40 overflow-auto whitespace-pre-line">{text||"No se ha recuperado esta sección."}</p>{sourceUrl&&<a href={sourceUrl} target="_blank" rel="noopener noreferrer" className="mt-3 inline-block text-[var(--color-subjects)] hover:underline">Abrir {kind} ↗</a>}</div>;
+  return <GuideExtract text={text || "No se ha recuperado esta sección."} sourceUrl={sourceUrl} sourceLabel={`Abrir ${kind.toLocaleLowerCase("es")}`} />;
 }
 function SelectionList({subjects,selected,toggle}:{subjects:DemoSubject[];selected:string[];toggle:(id:string)=>void}){
   return <div className="max-h-80 overflow-y-auto divide-y divide-[var(--color-border)]">{subjects.map(s=><label key={s.id} className="flex cursor-pointer items-center gap-3 py-2.5 text-sm">
@@ -191,11 +183,10 @@ export function SubjectsDemoDashboard({data}:{data:Demo716Payload}){
   const years=[...new Set(data.mentionYears.map(y=>y.year))].sort();
   const catsColors=["var(--color-subjects)","var(--color-degree)","var(--color-chart-violet)","var(--color-chart-amber)","var(--color-chart-slate)"];
   const toggle=(id:string)=>setSelection(old=>old.includes(id)?old.filter(v=>v!==id):old.length>=4?old:[...old,id]);
-  const metric=(id:number)=>current.metrics.find(m=>m.id===id)!;
   const hist=visible.length?bySubject.get(visible[0].id)??empty():empty();
   const bars=(calc:(s:DemoSubject,t:Totals)=>number|null,unit="",take=14)=><BarChart unit={unit} maxRows={take} highlight={selection} values={entries.map(({s,t})=>({id:s.id,name:s.name,value:calc(s,t),n:t.n}))}/>;
   const displayYears=years.map((y,i)=>({year:y,index:i}));
-  const annualSubjectLines=(get:(t:Totals)=>number|null,max=10)=>visible.slice(0,4).map((s,i)=>({name:choose(s),color:catsColors[i],values:displayYears.map(({year})=>{const t=summarize(data.stats.filter(r=>r.subjectId===s.id&&(mention==="all"||r.mentionCode===mention)&&r.cohort===year));return {x:year,y:get(t)};})}));
+  const annualSubjectLines=(get:(t:Totals)=>number|null)=>visible.slice(0,4).map((s,i)=>({name:choose(s),color:catsColors[i],values:displayYears.map(({year})=>{const t=summarize(data.stats.filter(r=>r.subjectId===s.id&&(mention==="all"||r.mentionCode===mention)&&r.cohort===year));return {x:year,y:get(t)};})}));
   const points=(f:(s:DemoSubject,t:Totals)=>{x:number|null;y:number|null})=>entries.flatMap(({s,t})=>{const z=f(s,t);return z.x===null||z.y===null?[]:[{name:s.name,x:z.x,y:z.y,n:t.n}];});
   const guideCount=data.subjects.filter(s=>s.guide!==null).length;
   const eligibleCount=data.subjects.filter(s=>s.availability==="listed").length;

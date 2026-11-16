@@ -41,21 +41,25 @@ export default async function DecisionPage({ searchParams }: { searchParams: Sea
   ]);
   const evidence = await getOfficialEvidence(plan.id, subjects);
 
-  return <div className="mx-auto max-w-7xl space-y-7 px-5 py-8 md:px-9 md:py-12">
-    <header className="space-y-3">
+  return <div className="bg-textured min-h-screen">
+    <div className="mx-auto max-w-[1500px] space-y-6 px-5 py-8 md:px-9 md:py-12">
       <nav aria-label="Contexto del plan" className="flex flex-wrap gap-x-5 gap-y-2 text-sm font-semibold text-subjects">
         <Link href="/panel">← Mi panel</Link>
         <Link href={subjectsPlanPath(plan, "expediente")}>Editar expediente</Link>
         <Link href={subjectsPlanPath(plan, "preferencias")}>Editar prioridades del plan</Link>
       </nav>
-      <h1 className="font-display text-4xl md:text-5xl">Mi ayuda a la decisión</h1>
-      <p className="text-[var(--color-fg-dim)]">{[plan.degreeName, plan.universityName, plan.name === plan.degreeName ? null : plan.name].filter(Boolean).join(" · ")}</p>
-    </header>
-    <DecisionWorkspace key={`${plan.id}:${tab}:${scenarioId ?? ""}:${subjectId ?? ""}`}
-      planId={plan.id} initialTab={tab} scenarioId={scenarioId} subjectId={subjectId}
-      subjects={subjects.map((subject) => ({ ...subject, sourceUrl: safeSourceUrl(subject.sourceUrl) }))}
-      progress={progress} decisions={decisions.map(({ id, kind, name, period, target, subjectIds, version, preferences }) =>
-        ({ id, kind, name, period, target, subjectIds, version, preferences }))}
-      evidence={evidence} favorites={favorites} />
+      <header className="relative overflow-hidden border border-border bg-bg-card px-5 py-6 sm:px-8 sm:py-8">
+        <div aria-hidden="true" className="pointer-events-none absolute -right-12 -top-20 h-60 w-60 rounded-full bg-subjects/10 blur-3xl" />
+        <h1 className="font-display text-4xl md:text-6xl">Mi ayuda a la <span className="text-subjects">decisión</span></h1>
+        <p className="mt-3 text-sm text-[var(--color-fg-dim)]">{[plan.degreeName, plan.universityName, plan.name === plan.degreeName ? null : plan.name].filter(Boolean).join(" · ")}</p>
+      </header>
+      <DecisionWorkspace key={`${plan.id}:${tab}:${scenarioId ?? ""}:${subjectId ?? ""}`}
+        planId={plan.id} totalCredits={Number(plan.totalEcts)} initialTab={tab} scenarioId={scenarioId} subjectId={subjectId}
+        subjects={subjects.map(({ id, name, code, ects, year, semester, type, knownUnavailable, sourceUrl }) =>
+          ({ id, name, code, ects, year, semester, type, knownUnavailable, sourceUrl: safeSourceUrl(sourceUrl) }))}
+        progress={progress} decisions={decisions.map(({ id, kind, name, period, target, subjectIds, version, preferences }) =>
+          ({ id, kind, name, period, target, subjectIds, version, preferences }))}
+        evidence={evidence} favorites={favorites} />
+    </div>
   </div>;
 }

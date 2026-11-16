@@ -14,9 +14,16 @@ export type DecisionSubject = {
 };
 export type OfficialEvidence = {
   subjectId: string;
-  guide: { program: string; assessment: string; sourceUrl: string } | null;
-  grades: { course: string; passed: number; total: number; sourceUrl: string }[];
+  guide: {
+    course: string; program: string; assessment: string; outcomes: string; activities: string; sourceUrl: string; multicenter: boolean;
+  } | null;
+  grades: OfficialSubjectGrades[];
 };
+export type OfficialSubjectGrades = {
+  course: string; passed: number; total: number; sourceUrl: string;
+  pass: number; merit: number; distinction: number; honours: number; failed: number; notPresented: number;
+};
+
 export const periodNames: Record<Period, string> = {
   "1": "Primer semestre", "2": "Segundo semestre", annual: "Curso completo",
 };
@@ -33,7 +40,7 @@ export function semesterName(value: string | null) {
   return value === "annual" ? "Anual" : value === "1" || value === "2" ? periodNames[value] : value ?? "Periodo sin confirmar";
 }
 
-export function selectionCredits(subjects: DecisionSubject[]) {
+export function selectionCredits(subjects: Pick<DecisionSubject, "ects">[]) {
   return subjects.reduce((sum, subject) => sum + Math.round(subject.ects * 100), 0) / 100;
 }
 
