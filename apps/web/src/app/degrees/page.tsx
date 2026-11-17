@@ -8,7 +8,7 @@ export default function DegreesPage() {
       <p className="font-mono text-sm text-[var(--color-degree-bright)]">PRIMERO, VAMOS A CONOCERTE</p>
       <h2 className="mt-4 text-3xl font-semibold">Encuentra opciones que tengan sentido para ti</h2>
       <p className="mt-5 text-[var(--color-fg-dim)]">Cuéntanos qué te interesa, cómo te ves y dónde podrías estudiar. Puedes dejar cualquier respuesta sin definir y cambiarla después.</p>
-      <p className="mt-4 text-sm">Test orientativo de seis pasos. Incluye autoevaluación, no una medición de capacidades.</p>
+      <p className="mt-4 text-sm">Test orientativo de siete pasos con intereses, actividades y capacidades autopercibidas.</p>
       <Link href="/degrees/personalized-test" className="mt-7 inline-block bg-[var(--color-degree)] px-6 py-4 font-semibold text-white">Empezar mi orientación →</Link>
       <Link href="/degrees/compare" className="mt-5 block text-sm underline">Explorar el comparador general</Link>
     </section>
