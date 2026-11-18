@@ -6,6 +6,7 @@ import { accountPath } from "@/lib/account/paths";
 import { getOfficialPlanContext, getSavedPlanProgress, getStudentProfile, subjectsPlanPath, uuidPattern } from "@/lib/account/profile";
 import { getAccountUser } from "@/lib/account/session";
 import { getPlanSubjects } from "@/lib/subjects/catalog";
+import { getObservatoryHistory } from "@/lib/subjects/get-observatory-history";
 import { decisionPath } from "@/lib/subjects/decision";
 import { getDecisionPlans, getOfficialEvidence, safeSourceUrl } from "@/lib/subjects/student-decisions";
 
@@ -39,7 +40,7 @@ export default async function DecisionPage({ searchParams }: { searchParams: Sea
     getPlanSubjects(plan.id), getSavedPlanProgress(user.id, plan.id), getDecisionPlans(user.id, plan.id),
     getFavoriteSubjects(user.id, plan.id),
   ]);
-  const evidence = await getOfficialEvidence(plan.id, subjects);
+  const [evidence, history] = await Promise.all([getOfficialEvidence(plan.id, subjects), getObservatoryHistory(plan.id)]);
 
   return <div className="bg-textured min-h-screen">
     <div className="mx-auto max-w-[1500px] space-y-6 px-5 py-8 md:px-9 md:py-12">
@@ -59,7 +60,7 @@ export default async function DecisionPage({ searchParams }: { searchParams: Sea
           ({ id, name, code, ects, year, semester, type, knownUnavailable, sourceUrl: safeSourceUrl(sourceUrl) }))}
         progress={progress} decisions={decisions.map(({ id, kind, name, period, target, subjectIds, version, preferences }) =>
           ({ id, kind, name, period, target, subjectIds, version, preferences }))}
-        evidence={evidence} favorites={favorites} />
+        evidence={evidence} history={history} favorites={favorites} />
     </div>
   </div>;
 }

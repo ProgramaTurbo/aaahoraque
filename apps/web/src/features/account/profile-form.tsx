@@ -1,55 +1,67 @@
 "use client";
 
-import { useActionState } from "react";
-import { saveProfile } from "@/app/panel/actions";
-import type { Language } from "@/lib/db/schema";
-import { accountButton, accountInput } from "./styles";
+import { useState, useTransition } from "react";
+import { saveDisplayName, selectPanelArea } from "@/app/panel/actions";
+import { accountInput } from "./styles";
 
-const stages = [
-  ["exploring", "Estoy eligiendo qué estudiar"],
-  ["studying", "Estoy estudiando"],
-  ["graduated", "He terminado mis estudios"],
-  ["other", "Otra situación"],
-];
+const areas = [
+  { id: "degree", label: "Carreras", detail: "Qué titulación elegir", active: "border-degree text-degree" },
+  { id: "erasmus", label: "Erasmus", detail: "Dónde estudiar de intercambio", active: "border-chart-green text-chart-green" },
+  { id: "subjects", label: "Asignaturas", detail: "Qué cursar en tu plan", active: "border-subjects text-subjects" },
+] as const;
 
-export function ProfileForm({ name, stage, goal, languages }: { name: string; stage: string; goal: string; languages: Language[] }) {
-  const [message, action, pending] = useActionState(saveProfile, "");
+export function ProfileForm({ name, area }: { name: string; area: typeof areas[number]["id"] }) {
+  const [value, setValue] = useState(name);
+  const [saved, setSaved] = useState(name);
+  const [message, setMessage] = useState<{ text: string; error?: boolean }>();
+  const [saving, startSaving] = useTransition();
+  const [changing, startChanging] = useTransition();
 
-  return <form action={action} className="space-y-5">
-    <div className="grid gap-4 sm:grid-cols-2">
-      <label className="space-y-2"><span>Nombre visible</span>
-        <input name="displayName" defaultValue={name} maxLength={80} className={accountInput} />
-      </label>
-      <label className="space-y-2"><span>Situación académica</span>
-        <select name="academicStage" defaultValue={stage} className={accountInput}>
-          <option value="">Sin indicar</option>
-          {stages.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-        </select>
-      </label>
+  function saveName() {
+    const next = value.trim();
+    if (saving || next === saved) return;
+    startSaving(async () => {
+      try {
+        const result = await saveDisplayName(next);
+        if (typeof result.displayName === "string") {
+          const displayName = result.displayName;
+          setSaved(displayName);
+          setValue((current) => current.trim() === next ? displayName : current);
+          setMessage({ text: "Nombre guardado." });
+        } else setMessage({ text: result.error ?? "No se pudo guardar el nombre.", error: true });
+      } catch {
+        setMessage({ text: "No se pudo guardar el nombre. Pulsa Enter para reintentar.", error: true });
+      }
+    });
+  }
+
+  return <div className="space-y-5">
+    <div className="max-w-lg">
+      <label htmlFor="panel-display-name" className="block text-sm font-semibold">Nombre visible</label>
+      <input id="panel-display-name" autoComplete="nickname" value={value} maxLength={80} className={`${accountInput} mt-2`}
+        readOnly={saving} onChange={(event) => { setValue(event.target.value); setMessage(undefined); }} onBlur={saveName}
+        onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); saveName(); } }} />
+      <p role="status" className={`mt-1 min-h-5 text-xs ${message?.error ? "text-rose-500" : "text-[var(--color-fg-dim)]"}`}>
+        {saving ? "Guardando nombre…" : message?.text ?? "Se guarda al salir del campo o pulsar Enter."}
+      </p>
     </div>
-    <label className="block space-y-2"><span>¿Qué quieres decidir ahora?</span>
-      <select name="decisionGoal" defaultValue={goal} className={accountInput}>
-        <option value="">Sin indicar</option>
-        <option value="degree">Qué titulación estudiar</option>
-        <option value="subjects">Qué asignaturas cursar</option>
-        <option value="erasmus">Dónde hacer Erasmus</option>
-      </select>
-    </label>
-    <fieldset className="space-y-3">
-      <legend className="font-semibold">Idiomas</legend>
-      {[0, 1, 2].map((i) => <div key={i} className="grid grid-cols-[minmax(0,1fr)_8rem] gap-3">
-        <input aria-label={`Idioma ${i + 1}`} placeholder="Ej. Inglés" name={`language-${i}`}
-          defaultValue={languages[i]?.name ?? ""} maxLength={40} className={accountInput} />
-        <select aria-label={`Nivel del idioma ${i + 1}`} name={`level-${i}`}
-          defaultValue={languages[i]?.level ?? ""} className={accountInput}>
-          <option value="">Nivel</option>
-          {["A1", "A2", "B1", "B2", "C1", "C2"].map((level) => <option key={level}>{level}</option>)}
-        </select>
-      </div>)}
-    </fieldset>
-    <div className="flex flex-wrap items-center gap-4">
-      <button type="submit" disabled={pending} className={accountButton}>{pending ? "Guardando…" : "Guardar perfil"}</button>
-      {message && <p role="status" className={message === "Perfil guardado." ? "text-success-fg" : "text-error-fg"}>{message}</p>}
-    </div>
-  </form>;
+    <nav aria-label="Áreas de mi perfil" aria-busy={changing} className="grid gap-2 sm:grid-cols-3 sm:gap-3">
+      {areas.map((item) => <button key={item.id} type="button" aria-pressed={area === item.id} disabled={changing}
+        className={`rounded-xl border p-4 text-left transition hover:bg-bg-card-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-subjects ${area === item.id ? `bg-bg-card-hover ring-1 ring-current ${item.active}` : "border-control-border text-fg"}`}
+        onClick={() => {
+          if (area === item.id) return;
+          startChanging(async () => {
+            try {
+              if (await selectPanelArea(item.id)) return;
+            } catch {
+              // Show the same message for a connection failure.
+            }
+            setMessage({ text: "No se pudo cambiar de área. Vuelve a intentarlo.", error: true });
+          });
+        }}>
+        <span className="block font-heading text-lg font-semibold">{item.label}</span>
+        <span className="mt-1 block text-sm text-[var(--color-fg-dim)]">{item.detail}</span>
+      </button>)}
+    </nav>
+  </div>;
 }

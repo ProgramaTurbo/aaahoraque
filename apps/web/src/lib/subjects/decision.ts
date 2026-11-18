@@ -15,7 +15,7 @@ export type DecisionSubject = {
 export type OfficialEvidence = {
   subjectId: string;
   guide: {
-    course: string; program: string; assessment: string; outcomes: string; activities: string; sourceUrl: string; multicenter: boolean;
+    course: string; program: string; basic: string; assessment: string; outcomes: string; activities: string; sourceUrl: string; multicenter: boolean;
   } | null;
   grades: OfficialSubjectGrades[];
 };

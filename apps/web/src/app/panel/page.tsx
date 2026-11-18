@@ -29,8 +29,21 @@ export default async function PanelPage() {
   const user = await getAccountUser();
   if (!user) redirect("/login?next=%2Fpanel");
 
-  const [profile, savedPlans, lastDecision, favorites] = await Promise.all([
-    getStudentProfile(user.id), getPlansWithSavedProgress(user.id), getMostRecentDecision(user.id), getFavorites(user.id),
+  const profile = await getStudentProfile(user.id);
+  const area = profile?.decisionGoal ?? "subjects";
+  const profileHeader = <header id="perfil" className={`${card} space-y-5`}>
+    <h1 className="font-display text-4xl md:text-5xl">Mi perfil</h1>
+    <ProfileForm name={profile?.displayName ?? user.name} area={area} />
+  </header>;
+  if (area !== "subjects") return <div className="mx-auto max-w-7xl space-y-6 px-5 py-8 md:px-9 md:py-12">
+    {profileHeader}
+    <section className={card} aria-label={area === "degree" ? "Carreras" : "Erasmus"}>
+      <h2 className="text-xl font-semibold">Próximamente</h2>
+    </section>
+  </div>;
+
+  const [savedPlans, lastDecision, favorites] = await Promise.all([
+    getPlansWithSavedProgress(user.id), getMostRecentDecision(user.id), getFavorites(user.id),
   ]);
   const currentId = profile?.currentStudyPlanId;
   const current = currentId ? savedPlans.find((plan) => plan.id === currentId) ?? await getOfficialPlanContext(currentId) : null;
@@ -58,10 +71,7 @@ export default async function PanelPage() {
   const earned = selectionCredits(catalog.filter((subject) => completed.has(subject.id)));
   const courseYears = [...new Set(catalog.map((subject) => subject.year))].sort((a, b) => (a ?? Infinity) - (b ?? Infinity));
   const preferenceCount = record ? Object.values(record.preferences).filter((value) => value !== null).length : 0;
-  const goal = profile?.decisionGoal;
   const steps = [
-    ...(goal === "degree" ? [{ title: "Explora titulaciones que te interesen", href: "/degrees" }] : []),
-    ...(goal === "erasmus" ? [{ title: "Consulta las opciones de movilidad", href: "/erasmus" }] : []),
     ...(!current ? [{ title: "Elige tu plan actual", href: "/subjects?buscar=1" }] : []),
     ...(recordPlan && !completed.size ? [{ title: "Revisa y guarda tu expediente", href: subjectsPlanPath(recordPlan, "expediente") }] : []),
     ...(recordPlan && preferenceCount < subjectPreferenceFields.length ? [{ title: "Completa las prioridades de tu plan", href: subjectsPlanPath(recordPlan, "preferencias") }] : []),
@@ -70,13 +80,7 @@ export default async function PanelPage() {
   ];
 
   return <div className="mx-auto max-w-7xl space-y-6 px-5 py-8 md:px-9 md:py-12">
-    <header className="flex flex-wrap items-end justify-between gap-4">
-      <div>
-        <p className="mb-2 text-sm font-semibold text-accent-bright">Mi panel</p>
-        <h1 className="font-display text-4xl md:text-5xl">Hola, {profile?.displayName ?? user.name}</h1>
-      </div>
-      <a href="#perfil" className={button}>Editar perfil</a>
-    </header>
+    {profileHeader}
 
     <section aria-labelledby="current-plan-title" className="space-y-4 rounded-2xl border border-subjects-border bg-linear-to-br from-panel-start to-panel-end p-5 text-fg sm:p-7">
       <h2 id="current-plan-title" className="text-sm font-semibold text-subjects">Mi plan actual</h2>
@@ -90,6 +94,7 @@ export default async function PanelPage() {
           <Link href={subjectsPlanPath(current, "expediente")} className={button}>Actualizar expediente</Link>
           <Link href={subjectsPlanPath(current, "preferencias")} className={button}>Actualizar prioridades</Link>
           <Link href="/subjects?buscar=1" className={button}>Cambiar de plan</Link>
+          <RemoveCurrentPlan />
         </div>
       </> : <div className="flex flex-wrap items-center justify-between gap-3">
         <p className={muted}>Marca un plan oficial como actual para tener a mano su expediente y su ayuda a la decisión.</p>
@@ -115,9 +120,8 @@ export default async function PanelPage() {
         <h2 className="text-xl font-semibold">Próximos pasos</h2>
         <ul className="mt-3 space-y-2 text-sm">
           {steps.slice(0, 3).map((step) => <li key={step.href}><Link href={step.href} className="font-semibold text-subjects underline underline-offset-2">{step.title} →</Link></li>)}
-          {!goal && <li><a href="#perfil" className="font-semibold text-subjects underline underline-offset-2">Indica qué decisión quieres preparar →</a></li>}
         </ul>
-        {steps.length === 0 && goal && <p className={muted}>Tu expediente, tus prioridades y tu planificación están configurados.</p>}
+        {steps.length === 0 && <p className={muted}>Tu expediente, tus prioridades y tu planificación están configurados.</p>}
       </section>
 
       <section id="expediente" className={`${card} lg:row-span-2`}>
@@ -180,11 +184,5 @@ export default async function PanelPage() {
       <Favorites favorites={favorites} />
     </section>
 
-    <section id="perfil" className={`${card} space-y-4`}>
-      <div><h2 className="text-xl font-semibold">Mi perfil</h2><p className={`${muted} mt-1`}>{user.email}</p></div>
-      <ProfileForm name={profile?.displayName ?? user.name} stage={profile?.academicStage ?? ""}
-        goal={profile?.decisionGoal ?? ""} languages={profile?.languages ?? []} />
-      {current && <div className="border-t border-border pt-3"><RemoveCurrentPlan /></div>}
-    </section>
   </div>;
 }

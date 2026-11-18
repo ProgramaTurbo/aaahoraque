@@ -145,7 +145,10 @@ export async function getPlanSubjects(planId: string) {
 
 function isKnownUnavailable(metadata: unknown) {
   if (!metadata || typeof metadata !== "object") return false;
-  const { occurrences } = metadata as { occurrences?: unknown };
-  return Array.isArray(occurrences) && occurrences.length > 0 &&
-    occurrences.every((occurrence) => occurrence?.offer_status === "not_offered");
+  const { offer_status, occurrences } = metadata as { offer_status?: unknown; occurrences?: unknown };
+  const unavailable = (value: unknown) => value === "not_offered" || value === "not_implemented";
+  if (Array.isArray(occurrences) && occurrences.length > 0) {
+    return occurrences.every((occurrence) => unavailable(occurrence?.offer_status));
+  }
+  return unavailable(offer_status);
 }

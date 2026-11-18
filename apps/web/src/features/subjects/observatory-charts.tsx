@@ -6,8 +6,8 @@ export function ObservatoryEmpty({ message }: { message: string }) {
 
 type Bar = { id: string; name: string; value: number | null; n?: number };
 
-export function ObservatoryBars({ values, label, unit = "", maximum, maxRows = 12, highlight = [], emptyMessage = "Datos insuficientes con estos filtros." }: {
-  values: Bar[]; label: string; unit?: string; maximum?: number; maxRows?: number; highlight?: string[]; emptyMessage?: string;
+export function ObservatoryBars({ values, label, unit = "", maximum, maxRows = 12, highlight = [], showCounts = false, emptyMessage = "Datos insuficientes con estos filtros." }: {
+  values: Bar[]; label: string; unit?: string; maximum?: number; maxRows?: number; highlight?: string[]; showCounts?: boolean; emptyMessage?: string;
 }) {
   const usable = values.filter((item): item is Bar & { value: number } => item.value !== null);
   if (!usable.length) return <ObservatoryEmpty message={emptyMessage} />;
@@ -18,7 +18,9 @@ export function ObservatoryBars({ values, label, unit = "", maximum, maxRows = 1
         title={item.n === undefined ? undefined : `Observaciones: ${item.n}`}>
         <div className="mb-1 flex items-baseline justify-between gap-3 text-xs">
           <span className={highlight.includes(item.id) ? "font-semibold text-subjects" : "text-fg"}>{item.name}</span>
-          <span className="shrink-0 font-mono tabular-nums">{creditsFormat.format(item.value)}{unit}</span>
+          <span className="shrink-0 text-right font-mono tabular-nums">{creditsFormat.format(item.value)}{unit}
+            {showCounts && item.n !== undefined && <span className="block text-[var(--color-fg-dim)]">n = {creditsFormat.format(item.n)}</span>}
+          </span>
         </div>
         <div className="h-2 overflow-hidden rounded-sm bg-bg-darker" aria-hidden="true">
           <div className={`h-full ${highlight.includes(item.id) ? "bg-subjects-fill" : "bg-chart-aqua"}`}

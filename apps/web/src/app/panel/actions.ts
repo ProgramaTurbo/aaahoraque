@@ -2,50 +2,34 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { academicStages, languageLevels, studentProfiles, type Language } from "@/lib/db/schema";
+import { studentProfiles } from "@/lib/db/schema";
 import { getAccountUser } from "@/lib/account/session";
 
-const stageOptions = new Set<string>(academicStages);
-const levelOptions = new Set<string>(languageLevels);
+type Changes = Pick<Partial<typeof studentProfiles.$inferInsert>, "displayName" | "decisionGoal">;
 
-export async function saveProfile(_previous: string, formData: FormData): Promise<string> {
+async function updateProfile(changes: Changes) {
   const user = await getAccountUser();
-  if (!user) return "La sesión ha caducado. Vuelve a iniciar sesión.";
+  if (!user) return false;
 
-  const name = String(formData.get("displayName") ?? "").trim();
-  const stage = String(formData.get("academicStage") ?? "");
-  const goal = String(formData.get("decisionGoal") ?? "");
-  const decisionGoal = goal === "degree" || goal === "subjects" || goal === "erasmus" ? goal : null;
-  if (goal && !decisionGoal) return "Revisa tu objetivo académico.";
-  const languages: Language[] = [];
-  const names = new Set<string>();
-  if (name.length > 80 || (stage && !stageOptions.has(stage))) return "Revisa los datos del perfil.";
-
-  for (let i = 0; i < 3; i++) {
-    const language = String(formData.get(`language-${i}`) ?? "").trim();
-    const level = String(formData.get(`level-${i}`) ?? "");
-    if (!language && !level) continue;
-    const key = language.toLocaleLowerCase("es");
-    if (!language || language.length > 40 || !levelOptions.has(level) || names.has(key)) {
-      return "Indica un nivel por idioma y evita repetir idiomas.";
-    }
-    names.add(key);
-    languages.push({ name: language, level: level as Language["level"] });
-  }
-
-  const values = {
-    displayName: name || null,
-    decisionGoal,
-    academicStage: stage ? stage as typeof academicStages[number] : null,
-    languages,
-    updatedAt: new Date(),
-  } satisfies Partial<typeof studentProfiles.$inferInsert>;
+  const values = { ...changes, updatedAt: new Date() };
   try {
     await db.insert(studentProfiles).values({ userId: user.id, ...values })
       .onConflictDoUpdate({ target: studentProfiles.userId, set: values });
   } catch {
-    return "No se ha podido guardar el perfil. Inténtalo de nuevo.";
+    return false;
   }
   revalidatePath("/panel");
-  return "Perfil guardado.";
+  return true;
+}
+
+export async function saveDisplayName(value: string) {
+  const displayName = typeof value === "string" ? value.trim() : "";
+  if (!displayName || displayName.length > 80) return { error: "Escribe un nombre de hasta 80 caracteres." };
+  if (!await updateProfile({ displayName })) return { error: "No se pudo guardar el nombre. Pulsa Enter para reintentar." };
+  return { displayName };
+}
+
+export async function selectPanelArea(value: string) {
+  if (value !== "degree" && value !== "erasmus" && value !== "subjects") return false;
+  return updateProfile({ decisionGoal: value });
 }

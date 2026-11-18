@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { deleteScenario, saveDecision } from "@/app/subjects/decision/actions";
 import { addFavorite, removeFavorite } from "@/app/panel/favorite-actions";
 import { CatalogSearch } from "./catalog-search";
@@ -10,6 +10,7 @@ import {
   type DecisionDraft, type DecisionSubject, type DecisionTab, type OfficialEvidence, type Period,
 } from "@/lib/subjects/decision";
 import { emptySubjectPreferences, preferenceLabels, subjectPreferenceFields, type SubjectPreferences, type SubjectProgress } from "@/lib/subjects/progress";
+import type { ObservatoryHistory } from "@/lib/subjects/observatory-history";
 
 type SavedDecision = DecisionDraft & {
   id: string; version: number; kind: "draft" | "scenario"; name: string | null; preferences: SubjectPreferences | null;
@@ -18,7 +19,7 @@ type ScenarioForm = DecisionDraft & { id?: string; version: number; name: string
 type DraftForm = DecisionDraft & { id?: string; version: number };
 type Props = {
   planId: string; totalCredits: number; subjects: DecisionSubject[]; progress: SubjectProgress | null;
-  decisions: SavedDecision[]; evidence: OfficialEvidence[]; favorites: { id: string; subjectId: string }[];
+  decisions: SavedDecision[]; evidence: OfficialEvidence[]; history: ObservatoryHistory; favorites: { id: string; subjectId: string }[];
   initialTab: DecisionTab; scenarioId?: string; subjectId?: string;
 };
 
@@ -33,10 +34,11 @@ function ects(value: number) {
   return `${creditsFormat.format(value)} ECTS`;
 }
 
-export function DecisionWorkspace({ planId, totalCredits, subjects, progress, decisions, evidence, favorites, initialTab, scenarioId, subjectId }: Props) {
+export function DecisionWorkspace({ planId, totalCredits, subjects, progress, decisions, evidence, history, favorites, initialTab, scenarioId, subjectId }: Props) {
   const [pending, startTransition] = useTransition();
   const [message, setMessage] = useState<{ text: string; error?: boolean } | null>(null);
   const [tab, setTab] = useState<DecisionTab>(initialTab);
+  const workspaceNav = useRef<HTMLElement>(null);
   const [compared, setCompared] = useState<string[]>(() => [...new Set([subjectId, ...(progress?.shortlist ?? [])].filter((id): id is string =>
     Boolean(id && subjects.some((subject) => subject.id === id))))].slice(0, comparisonLimit));
   const [draft, setDraft] = useState<DraftForm>(() => decisions.find((row) => row.kind === "draft") ?? defaultDraft);
@@ -64,7 +66,7 @@ export function DecisionWorkspace({ planId, totalCredits, subjects, progress, de
     const value = progress.preferences[key];
     return value !== null && value > 0;
   }).sort((a, b) => (progress.preferences[b] ?? 0) - (progress.preferences[a] ?? 0)).slice(0, 3)
-    .map((key) => ({ label: preferenceLabels[key], value: progress.preferences[key] ?? 0 })) : [];
+    .map((key) => ({ key, label: preferenceLabels[key], value: progress.preferences[key] ?? 0 })) : [];
   const scenarioA = scenarios.find((item) => item.id === comparison.first);
   const scenarioB = scenarios.find((item) => item.id === comparison.second);
   const selectedSubjects = (ids: string[]) => ids.flatMap((id) => {
@@ -79,9 +81,13 @@ export function DecisionWorkspace({ planId, totalCredits, subjects, progress, de
     });
   }
 
-  function chooseTab(value: DecisionTab) {
+  function chooseTab(value: DecisionTab, fromAction = false) {
     setTab(value);
     setMessage(null);
+    if (fromAction) requestAnimationFrame(() => {
+      workspaceNav.current?.scrollIntoView({ block: "start" });
+      workspaceNav.current?.querySelector<HTMLButtonElement>("button[aria-pressed=true]")?.focus({ preventScroll: true });
+    });
   }
 
   function editDraft(value: DraftForm) {
@@ -123,7 +129,7 @@ export function DecisionWorkspace({ planId, totalCredits, subjects, progress, de
       period: draft.period, target: draft.target, subjectIds, name: "", version: 0,
       preferences: progress?.preferences ?? emptySubjectPreferences(),
     });
-    chooseTab("escenarios");
+    chooseTab("escenarios", true);
   }
 
   function saveScenario() {
@@ -143,8 +149,15 @@ export function DecisionWorkspace({ planId, totalCredits, subjects, progress, de
       setMessage({ text: "El borrador admite hasta 80 asignaturas.", error: true });
       return;
     }
-    if (!draft.subjectIds.includes(id)) editDraft({ ...draft, subjectIds: [...draft.subjectIds, id] });
-    chooseTab("semestre");
+    if (!draft.subjectIds.includes(id)) {
+      const semester = byId.get(id)?.semester;
+      const untouchedDraft = !draft.id && !draftDirty && draft.subjectIds.length === 0;
+      editDraft({
+        ...draft, period: untouchedDraft && isPeriod(semester) ? semester : draft.period,
+        subjectIds: [...draft.subjectIds, id],
+      });
+    }
+    chooseTab("semestre", true);
   }
 
   const tabs = [
@@ -153,7 +166,7 @@ export function DecisionWorkspace({ planId, totalCredits, subjects, progress, de
     { id: "escenarios", label: "Mis escenarios" },
   ] as const;
   return <div className="space-y-5">
-    <nav aria-label="Ayuda a la decisión" className="flex flex-wrap gap-2 border-b border-border pb-3">
+    <nav ref={workspaceNav} aria-label="Ayuda a la decisión" className="scroll-mt-24 flex flex-wrap gap-2 border-b border-border pb-3">
       {tabs.map((item) => <button key={item.id} type="button" aria-pressed={tab === item.id} onClick={() => chooseTab(item.id)}
         className={tab === item.id ? primary : secondary}>{item.label}</button>)}
     </nav>
@@ -161,7 +174,7 @@ export function DecisionWorkspace({ planId, totalCredits, subjects, progress, de
 
     <div hidden={tab !== "decidir"}>
       <StudentObservatory
-        subjects={subjects} totalCredits={totalCredits} completed={completed} evidence={evidence}
+        subjects={subjects} totalCredits={totalCredits} completed={completed} evidence={evidence} history={history}
         compared={compared} setCompared={setCompared} initialSubjectId={subjectId} draft={draft}
         favorites={favoriteIds} priorities={priorities} pending={pending} onDraft={addToDraft}
         onScenario={() => newScenario(compared)}

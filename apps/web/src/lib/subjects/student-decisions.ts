@@ -21,7 +21,7 @@ export async function getMostRecentDecision(userId: string) {
   return row ?? null;
 }
 
-const plan716 = "fed26b74-ed7e-58e6-bf1a-9da2d1413862";
+export const plan716 = "fed26b74-ed7e-58e6-bf1a-9da2d1413862";
 
 export async function getOfficialEvidence(planId: string, subjects: Pick<DecisionSubject, "id" | "code">[]) {
   if (planId !== plan716 || !subjects.length) return [];
@@ -39,7 +39,7 @@ export async function getOfficialEvidence(planId: string, subjects: Pick<Decisio
   const [guides, grades] = await Promise.all([
     available.has("guides") ? db.execute(sql`
       SELECT g.official_code, g.guide_source_url, g.program, g.assessment_eina, g.academic_course,
-             to_jsonb(g)->>'learning_outcomes' AS learning_outcomes, to_jsonb(g)->>'activities' AS activities,
+             to_jsonb(g)->>'guide_basic' AS guide_basic, to_jsonb(g)->>'learning_outcomes' AS learning_outcomes, to_jsonb(g)->>'activities' AS activities,
              to_jsonb(g)->>'multicenter_guide' AS multicenter_guide
       FROM dss_enrichment_716.guides g
       WHERE plan_id = ${planId}::uuid AND academic_course = '2026-2027'
@@ -75,7 +75,7 @@ export async function getOfficialEvidence(planId: string, subjects: Pick<Decisio
     const row = subject.code ? byCode.get(subject.code) : undefined;
     const sourceUrl = safeSourceUrl(row?.guide_source_url);
     const guide = row && sourceUrl ? {
-      program: String(row.program ?? ""), assessment: String(row.assessment_eina ?? ""), sourceUrl,
+      program: String(row.program ?? ""), basic: String(row.guide_basic ?? ""), assessment: String(row.assessment_eina ?? ""), sourceUrl,
       outcomes: String(row.learning_outcomes ?? ""), activities: String(row.activities ?? ""), course: String(row.academic_course),
       multicenter: row.multicenter_guide === "true",
     } : null;
