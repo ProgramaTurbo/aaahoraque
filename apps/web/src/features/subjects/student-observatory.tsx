@@ -12,8 +12,6 @@ import {
   type DecisionDraft, type DecisionSubject, type OfficialEvidence, type OfficialSubjectGrades,
 } from "@/lib/subjects/decision";
 
-export const comparisonLimit = 4;
-
 const sections = [
   ["resultados", "Resultados"], ["experiencias", "Experiencias"], ["esfuerzo", "Esfuerzo"],
   ["organizacion", "Organización"], ["formacion", "Formación"], ["relaciones", "Relaciones"],
@@ -85,12 +83,14 @@ export function StudentObservatory({
   const [year, setYear] = useState(initialYear);
   const [period, setPeriod] = useState("all");
   const [type, setType] = useState("all");
+  const [selectedMentions, setSelectedMentions] = useState<string[]>([]);
   const [search, setSearch] = useState("");
   const [focusId, setFocusId] = useState(initialSubjectId);
   const [resultCourse, setResultCourse] = useState("all");
   const [showSample, setShowSample] = useState(false);
   const byId = new Map(subjects.map((subject) => [subject.id, subject]));
   const evidenceById = new Map(evidence.map((item) => [item.subjectId, item]));
+  const comparedIds = new Set(compared);
   const selected = compared.flatMap((id) => {
     const item = byId.get(id);
     return item ? [item] : [];
@@ -104,12 +104,16 @@ export function StudentObservatory({
   const periods = [...new Set(subjects.map((item) => item.semester))].sort((a, b) => semesterOrder(a) - semesterOrder(b));
   const earlierPending = year === "all" || year === "none" ? [] : subjects.filter((subject) =>
     subject.year !== null && subject.year < Number(year) && (subject.type === "mandatory" || subject.type === "basic") && !completed.has(subject.id));
+  const mentions = [...new Set(history.mentions.map((item) => item.name))].sort((a, b) => a.localeCompare(b, "es"));
+  const mentionSubjectIds = selectedMentions.length ? new Set(history.mentions
+    .filter((item) => selectedMentions.includes(item.name)).map((item) => item.subjectId)) : null;
   const terms = normalizeSearch(search).split(/\s+/).filter(Boolean);
   const filtered = subjects.filter((item) => {
     if ((state === "pending" && completed.has(item.id)) || (state === "completed" && !completed.has(item.id))) return false;
     if (year !== "all" && String(item.year ?? "none") !== year) return false;
     if (period !== "all" && (item.semester ?? "none") !== period) return false;
     if (type !== "all" && (item.type ?? "none") !== type) return false;
+    if (mentionSubjectIds && !mentionSubjectIds.has(item.id)) return false;
     const index = normalizeSearch(`${item.name} ${item.code ?? ""}`);
     return terms.every((term) => index.includes(term));
   });
@@ -134,20 +138,18 @@ export function StudentObservatory({
     setYear(initialYear);
     setPeriod("all");
     setType("all");
+    setSelectedMentions([]);
     setSearch("");
     setFocusId(undefined);
-
   }
 
   function toggleCompared(id: string) {
-    if (compared.includes(id)) {
+    if (comparedIds.has(id)) {
       setCompared(compared.filter((item) => item !== id));
       return;
     }
-    if (compared.length < comparisonLimit) {
-      setCompared([...compared, id]);
-      setFocusId(id);
-    }
+    setCompared([...compared, id]);
+    setFocusId(id);
   }
 
   return <div className="space-y-5">
@@ -156,7 +158,7 @@ export function StudentObservatory({
         ["Sin marcar como superadas", String(pendingCount), "Asignaturas del catálogo"],
         ["ECTS superados", creditsFormat.format(earned), "Según tu expediente"],
         ["ECTS por completar", totalCredits > 0 ? creditsFormat.format(creditsRemaining) : "Sin total", "Respecto al total del plan"],
-        ["ECTS seleccionados", creditsFormat.format(selectionCredits(selected)), `${selected.length} de ${comparisonLimit} en comparación`],
+        ["ECTS seleccionados", creditsFormat.format(selectionCredits(selected)), `${selected.length} en comparación`],
       ].map(([label, value, detail]) => <div key={label} className="space-y-1 bg-bg-card p-3 sm:p-5">
         <dt className="text-sm font-medium">{label}</dt>
         <dd className="font-display text-2xl text-subjects sm:text-4xl">{value}</dd>
@@ -168,13 +170,13 @@ export function StudentObservatory({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 id="pending-subjects" className="font-heading text-2xl font-semibold">Prepara tus próximas asignaturas</h2>
-          <p className={`${muted} mt-1`}>Elige un curso y semestre. Marca hasta cuatro asignaturas para compararlas.</p>
+          <p className={`${muted} mt-1`}>Filtra el catálogo y marca las asignaturas que quieras comparar.</p>
         </div>
         <button type="button" onClick={resetFilters} className={secondary}>Restablecer filtros</button>
       </div>
       {earlierPending.length > 0 && <div className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-warning-bg px-3 py-2 text-sm text-warning-fg">
         <p>{earlierPending.length === 1 ? "Tienes una asignatura obligatoria o básica pendiente de cursos anteriores." : `Tienes ${earlierPending.length} asignaturas obligatorias o básicas pendientes de cursos anteriores.`}</p>
-        <button type="button" className="font-semibold underline underline-offset-2" onClick={() => { setYear("all"); setState("pending"); setPeriod("all"); setType("all"); setSearch(""); }}>Ver todos los cursos</button>
+        <button type="button" className="font-semibold underline underline-offset-2" onClick={() => { setYear("all"); setState("pending"); setPeriod("all"); setType("all"); setSelectedMentions([]); setSearch(""); }}>Ver todos los cursos</button>
       </div>}
       <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-[2fr_1fr_1fr_1fr_1fr]">
         <label className="text-sm font-medium sm:col-span-2 xl:col-span-1">Buscar asignatura
@@ -190,14 +192,26 @@ export function StudentObservatory({
         <Filter label="Tipo" value={type} onChange={setType}
           options={[["all", "Todos los tipos"], ...types.map((item): [string, string] => [item ?? "none", subjectTypes[item ?? ""] ?? item ?? "Sin indicar"])]} />
       </div>
+      {mentions.length > 0 && <fieldset className="mt-4">
+        <legend className="text-sm font-semibold">Ramas del plan</legend>
+        <div className="mt-2 flex flex-wrap gap-2">
+          <button type="button" aria-pressed={!selectedMentions.length} onClick={() => setSelectedMentions([])}
+            className={`${secondary} aria-pressed:border-subjects aria-pressed:bg-subjects-highlight aria-pressed:text-subjects`}>Todas las ramas</button>
+          {mentions.map((name) => <button key={name} type="button" aria-pressed={selectedMentions.includes(name)}
+            onClick={() => setSelectedMentions((current) => current.includes(name) ? current.filter((item) => item !== name) : [...current, name])}
+            className={`${secondary} aria-pressed:border-subjects aria-pressed:bg-subjects-highlight aria-pressed:text-subjects`}>{name}</button>)}
+        </div>
+      </fieldset>}
 
       <div className="mt-4 grid items-start gap-5 xl:grid-cols-[minmax(0,1.65fr)_minmax(0,1fr)]">
         <div className="min-w-0">
           <div className={`flex flex-wrap justify-between gap-x-3 gap-y-1 border-b border-border pb-2 ${muted}`}>
             <span role="status">{filtered.length} {filtered.length === 1 ? "asignatura" : "asignaturas"}</span>
-            {selected.length > 0
-              ? <a href="#indicators" className={link}>{selected.length}/{comparisonLimit} en comparación ↓</a>
-              : <span>0/{comparisonLimit} en comparación</span>}
+            <div className="flex flex-wrap items-center gap-3">
+              {filtered.some((item) => !comparedIds.has(item.id)) && <button type="button" className={link}
+                onClick={() => setCompared([...new Set([...compared, ...filtered.map((item) => item.id)])])}>Comparar todas las visibles</button>}
+              {selected.length > 0 && <a href="#indicators" className={link}>{selected.length} en comparación ↓</a>}
+            </div>
           </div>
           {filtered.length ? <div className="max-h-[33rem] space-y-3 overflow-auto py-2">
             {periods.map((semester) => {
@@ -211,9 +225,8 @@ export function StudentObservatory({
                   {[...group].sort((a, b) => Number(a.type === "optional") - Number(b.type === "optional")).map((item) =>
                     <li key={item.id} className={`flex items-center gap-2 px-3 py-2 ${focus?.id === item.id ? "bg-subjects-surface" : "hover:bg-bg-card-hover"}`}>
                       <label className="grid size-10 shrink-0 cursor-pointer place-items-center">
-                        <input type="checkbox" aria-label={`Comparar ${item.name}`} checked={compared.includes(item.id)}
-                          className="size-4 accent-subjects-fill disabled:opacity-40"
-                          disabled={!compared.includes(item.id) && compared.length >= comparisonLimit} onChange={() => toggleCompared(item.id)} />
+                        <input type="checkbox" aria-label={`Comparar ${item.name}`} checked={comparedIds.has(item.id)}
+                          className="size-4 accent-subjects-fill" onChange={() => toggleCompared(item.id)} />
                       </label>
                       <button type="button" onClick={() => setFocusId(item.id)} aria-pressed={focus?.id === item.id}
                         className="min-w-0 flex-1 py-1 text-left focus-visible:outline-2 focus-visible:outline-subjects">
@@ -265,14 +278,19 @@ export function StudentObservatory({
         <h2 id="indicators" className="scroll-mt-28 font-heading text-xl font-semibold">Indicadores para decidir</h2>
         <button type="button" disabled={selected.length < 2 || pending} className={secondary} onClick={onScenario}>Crear escenario con la selección</button>
       </div>
-      {selected.length > 0 ? <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
-        <span className={muted}>Comparando</span>
-        {selected.map((item) => <button type="button" key={item.id}
-          aria-label={`Quitar ${item.name} de la comparación`} onClick={() => toggleCompared(item.id)}
-          className="max-w-full rounded-full border border-subjects-border bg-subjects-surface px-2.5 py-1 font-medium text-subjects">
-          {item.name} · {semesterName(item.semester)} ×
-        </button>)}
-        {selected.length > 1 && <button type="button" className={link} onClick={() => setCompared([])}>Limpiar selección</button>}
+      {selected.length > 0 ? <div className="mt-3 space-y-2">
+        <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+          <p className={muted}>{selected.length} en comparación</p>
+          <button type="button" className={link} onClick={() => setCompared([])}>Limpiar selección</button>
+        </div>
+        <ul className="flex max-h-48 flex-wrap items-center gap-2 overflow-auto py-1 text-sm" aria-label="Asignaturas comparadas">
+          {selected.map((item) => <li key={item.id} className="max-w-full">
+            <button type="button" aria-label={`Quitar ${item.name} de la comparación`} onClick={() => toggleCompared(item.id)}
+              className="max-w-full rounded-full border border-subjects-border bg-subjects-surface px-2.5 py-1 font-medium text-subjects">
+              {item.name} · {semesterName(item.semester)} ×
+            </button>
+          </li>)}
+        </ul>
       </div> : <p className={`${muted} mt-2`}>Ves los datos del listado filtrado. Marca asignaturas para acotar la comparación.</p>}
       {priorities.length > 0 && <p className={`${muted} mt-3`}>Tus prioridades más altas · {priorities.map((item) =>
         `${item.label} ${item.value}/10`).join(" · ")}</p>}
@@ -297,7 +315,7 @@ export function StudentObservatory({
 
     {section === "organizacion" && <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
       <Indicator title="Créditos por asignatura" source="Catálogo oficial">
-        <ObservatoryBars label="Créditos por asignatura" unit=" ECTS" highlight={compared}
+        <ObservatoryBars label="Créditos por asignatura" unit=" ECTS" maxRows={selected.length ? -1 : undefined} highlight={compared}
           values={visible.map((item) => ({ id: item.id, name: item.name, value: item.ects }))} />
       </Indicator>
       <Indicator title="Distribución por periodo" source={selected.length ? "Selección" : "Listado filtrado"}>
@@ -317,7 +335,7 @@ export function StudentObservatory({
       </Indicator>
       {selected.length > 0 && <div className="min-w-0 lg:col-span-2">
         <Indicator title="Comparación del plan" source="Catálogo y expediente">
-          <div className="max-w-full overflow-x-auto" tabIndex={0} role="region" aria-label="Tabla de comparación del plan">
+          <div className="max-h-[32rem] max-w-full overflow-auto" tabIndex={0} role="region" aria-label="Tabla de comparación del plan">
             <table className="w-full min-w-[640px] text-left text-sm">
               <thead><tr className="border-b border-border">
                 {["Asignatura", "ECTS", "Curso", "Periodo", "Tipo", "Estado"].map((label) => <th className="p-2" scope="col" key={label}>{label}</th>)}
@@ -352,7 +370,7 @@ export function StudentObservatory({
           ["Tasa de aprobados", (row: OfficialSubjectGrades) => row.passed],
           ["Tasa de no presentados", (row: OfficialSubjectGrades) => row.notPresented],
         ] as const).map(([label, count]) => <Indicator key={label} title={label} source={`Oficial · ${activeCourse}`}>
-          <ObservatoryBars label={label} unit=" %" maximum={100} highlight={compared} showCounts values={visible.map((item) => {
+          <ObservatoryBars label={label} unit=" %" maximum={100} maxRows={selected.length ? -1 : undefined} highlight={compared} showCounts values={visible.map((item) => {
             const row = resultFor(item.id);
             return { id: item.id, name: item.name, value: row ? count(row) * 100 / row.total : null, n: row?.total };
           })} />
@@ -361,7 +379,7 @@ export function StudentObservatory({
           {selected.length === 0 && withResults.length > distributions.length && <p className={`${muted} mb-3`}>
             Se muestran {distributions.length} de {withResults.length}. Marca las asignaturas que quieras comparar.
           </p>}
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <div className="grid max-h-[40rem] grid-cols-1 gap-3 overflow-auto md:grid-cols-2">
             {distributions.map((item) => {
               const row = resultFor(item.id);
               return <div key={item.id} className="min-w-0 space-y-2 border border-border p-3">
@@ -441,17 +459,26 @@ function GradeDistribution({ row }: { row: OfficialSubjectGrades }) {
 
 
 function MentionComparison({ selected, history }: { selected: DecisionSubject[]; history: ObservatoryHistory }) {
+  const ids = new Set(selected.map((item) => item.id));
+  const bySubject = new Map<string, ObservatoryHistory["mentions"]>();
+  const counts = new Map<string, number>();
+  for (const item of history.mentions) {
+    if (!ids.has(item.subjectId)) continue;
+    const memberships = bySubject.get(item.subjectId) ?? [];
+    memberships.push(item);
+    bySubject.set(item.subjectId, memberships);
+    counts.set(item.name, (counts.get(item.name) ?? 0) + 1);
+  }
   return <Indicator title="Menciones del plan" source="Catálogo oficial">
     {selected.length < 2 ? <p className={muted}>Selecciona al menos dos asignaturas para ver qué menciones comparten.</p> :
       <div className="space-y-4">
         {selected.map((subject) => {
-          const memberships = history.mentions.filter((item) => item.subjectId === subject.id);
+          const memberships = bySubject.get(subject.id) ?? [];
           return <div key={subject.id} className="space-y-2">
             <p className="text-sm font-semibold">{subject.name}</p>
             {memberships.length ? <ul className="flex flex-wrap gap-2">
               {memberships.map((item) => {
-                const shared = history.mentions.some((other) => other.name === item.name && other.subjectId !== subject.id &&
-                  selected.some((selectedItem) => selectedItem.id === other.subjectId));
+                const shared = (counts.get(item.name) ?? 0) > 1;
                 return <li key={item.name}><a href={item.sourceUrl} className={`inline-block rounded-full border px-2.5 py-1 text-xs underline underline-offset-2 ${shared ? "border-subjects bg-subjects-surface font-semibold text-subjects" : "border-border"}`}>
                   {item.name} · {item.course}{shared ? " · compartida" : ""}
                 </a></li>;

@@ -6,7 +6,7 @@ import { creditsFormat, type DecisionSubject } from "@/lib/subjects/decision";
 import { mergeSample, type ObservatoryHistory, type SampleStats } from "@/lib/subjects/observatory-history";
 import { ObservatoryBars, ObservatoryEmpty } from "./observatory-charts";
 
-const colors = ["var(--color-subjects)", "var(--color-chart-violet)", "var(--color-chart-green)", "var(--color-chart-amber)"];
+const colors = ["var(--color-subjects)", "var(--color-chart-violet)", "var(--color-chart-green)", "var(--color-chart-amber)", "var(--color-chart-rose)", "var(--color-chart-slate)"];
 const muted = "text-sm text-[var(--color-fg-dim)]";
 const digits = creditsFormat.format;
 const ratio = (value: number, n: number) => n > 0 ? value / n : null;
@@ -49,7 +49,7 @@ export function HistoricalIndicators({ section, items, history, course, comparin
 
   function metric(title: string, unit: string, max: number | undefined, explain: string, value: (stats: SampleStats) => number | null, count: (stats: SampleStats) => number) {
     return <IndicatorCard title={title} source="Simulado">
-      <ObservatoryBars label={title} unit={unit} maximum={max} highlight={selectedIds} showCounts
+      <ObservatoryBars label={title} unit={unit} maximum={max} maxRows={comparing ? -1 : undefined} highlight={selectedIds} showCounts
         values={values.map(({ item, stats }) => ({ id: item.id, name: item.name, value: value(stats), n: count(stats) }))} />
       <p className={`${muted} mt-3`}>{explain}</p>
       {comparing && values.some(({ stats }) => value(stats) === null) && <p className={`${muted} mt-2`}>
@@ -76,7 +76,7 @@ export function HistoricalIndicators({ section, items, history, course, comparin
       {metric("Nota media", " / 10", 10, "Media de las calificaciones registradas. Excluye a quienes no se presentaron.", (s) => ratio(s.gradeSum, s.graded), (s) => s.graded)}
       {metric("Tasa de aprobados en la muestra", " %", 100, "Aprobados sobre el total de registros, incluidos los no presentados.", (s) => percent(s.passed, s.n), (s) => s.n)}
       <IndicatorCard title="Distribución de notas simuladas" source="Simulado">
-        <div className="space-y-4">
+        <div className="max-h-[32rem] space-y-4 overflow-auto">
           {(comparing ? values : values.filter(({ stats }) => stats.graded).slice(0, 4)).map(({ item, stats }) =>
             <div key={item.id}>
               <p className="text-sm font-semibold">{item.name}</p>
@@ -156,19 +156,41 @@ export function StackedDistribution({ total, entries }: { total: number; entries
 function Trend({ title, items, history, comparing, metric }: {
   title: string; items: DecisionSubject[]; history: ObservatoryHistory; comparing: boolean; metric: "grade" | "count";
 }) {
-  if (!comparing) return <IndicatorCard title={title} source="Simulado"><p className={muted}>Selecciona hasta cuatro asignaturas para ver su evolución.</p></IndicatorCard>;
+  if (!comparing) return <IndicatorCard title={title} source="Simulado"><p className={muted}>Selecciona asignaturas para ver su evolución.</p></IndicatorCard>;
   const keys = items.map((item, index) => ({ ...item, key: `serie${index}`, color: colors[index % colors.length] }));
   const itemIds = new Set(items.map((item) => item.id));
   const rows = history.stats.filter((row) => itemIds.has(row.subjectId));
   const years = [...new Set(rows.map((row) => row.course))].sort();
+  const grouped = new Map<string, typeof rows>();
+  for (const row of rows) {
+    const key = `${row.course}:${row.subjectId}`;
+    const found = grouped.get(key);
+    if (found) found.push(row);
+    else grouped.set(key, [row]);
+  }
   const data = years.map((course) => ({
     course, ...Object.fromEntries(keys.map((item) => {
-      const stats = mergeSample(rows.filter((row) => row.course === course && row.subjectId === item.id));
+      const stats = mergeSample(grouped.get(`${course}:${item.id}`) ?? []);
       return [item.key, metric === "grade" ? ratio(stats.gradeSum, stats.graded) : stats.n || null];
     })),
   }));
   return <IndicatorCard title={title} source="Simulado">
-    {years.length < 2 ? <p className={muted}>Se necesitan datos de al menos dos cursos académicos.</p> : <>
+    {years.length < 2 ? <p className={muted}>Se necesitan datos de al menos dos cursos académicos.</p> : keys.length > colors.length ?
+      <div className="max-h-80 overflow-auto" role="region" aria-label={title} tabIndex={0}>
+        <table className="w-full text-left text-sm">
+          <caption className="mb-2 text-left text-xs">Valores por asignatura y curso académico</caption>
+          <thead><tr className="border-b border-border"><th className="p-2" scope="col">Asignatura</th>
+            {years.map((year) => <th className="whitespace-nowrap p-2" scope="col" key={year}>{year}</th>)}
+          </tr></thead>
+          <tbody>{keys.map((item) => <tr key={item.id} className="border-b border-border">
+            <th className="min-w-40 p-2 font-medium" scope="row">{item.name}</th>
+            {data.map((row) => {
+              const value = (row as Record<string, unknown>)[item.key];
+              return <td className="p-2 tabular-nums" key={row.course}>{typeof value === "number" ? digits(value) : "—"}</td>;
+            })}
+          </tr>)}</tbody>
+        </table>
+      </div> : <>
       <p className={`${muted} mb-3`}>Serie completa de las asignaturas seleccionadas.</p>
       <div className="h-60 w-full min-w-0">
         <ResponsiveContainer width="100%" height="100%">

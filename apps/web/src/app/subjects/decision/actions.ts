@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { studentDecisionPlans, subjects } from "@/lib/db/schema";
@@ -30,17 +30,17 @@ export async function saveDecision(planId: string, kind: "draft" | "scenario", i
   if (!input || !isPeriod(input.period) || !Number.isInteger(input.target) || input.target < 1 || input.target > 120 ||
       !Number.isInteger(input.version) || input.version < 0 || input.version >= 2_147_483_647 ||
       (input.id ? typeof input.id !== "string" || !uuidPattern.test(input.id) || input.version === 0 : input.version !== 0) ||
-      !Array.isArray(input.subjectIds) || input.subjectIds.length > 80 ||
+      !Array.isArray(input.subjectIds) ||
       input.subjectIds.some((id) => typeof id !== "string" || !uuidPattern.test(id))) {
-    return { error: "Revisa el periodo, el objetivo de ECTS (1–120) y la selección (hasta 80 asignaturas)." };
+    return { error: "Revisa el periodo, el objetivo de ECTS (1–120) y las asignaturas seleccionadas." };
   }
   const name = kind === "scenario" && typeof input.name === "string" ? input.name.trim() : null;
   if (kind === "scenario" && (!name || name.length > 80)) return { error: "Escribe un nombre de hasta 80 caracteres." };
   const subjectIds = [...new Set(input.subjectIds)];
   if (subjectIds.length) {
-    const found = await db.select({ id: subjects.id }).from(subjects)
-      .where(and(eq(subjects.studyPlanId, planId), inArray(subjects.id, subjectIds)));
-    if (found.length !== subjectIds.length) return { error: "Hay asignaturas que ya no pertenecen al catálogo de este plan." };
+    const [found] = await db.select({ total: sql<number>`count(*)`.mapWith(Number) }).from(subjects)
+      .where(and(eq(subjects.studyPlanId, planId), sql`${subjects.id} = ANY(${sql.param(subjectIds)}::uuid[])`));
+    if (found.total !== subjectIds.length) return { error: "Hay asignaturas que ya no pertenecen al catálogo de este plan." };
   }
 
   const values = {

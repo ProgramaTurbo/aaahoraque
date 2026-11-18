@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { creditsFormat, type DecisionSubject, type OfficialEvidence } from "@/lib/subjects/decision";
 import { IndicatorCard } from "./historical-indicators";
 
@@ -19,17 +20,25 @@ function guideWords(program: string) {
 export function FormationComparison({ items, evidence, overlap = false }: {
   items: DecisionSubject[]; evidence: Map<string, OfficialEvidence>; overlap?: boolean;
 }) {
+  const [referenceId, setReferenceId] = useState("");
   const guides = items.map((item) => ({ item, guide: evidence.get(item.id)?.guide }));
   if (overlap) {
     if (items.length < 2) return null;
-    const pairs = guides.flatMap((left, index) => guides.slice(index + 1).map((right) => {
-      const a = guideWords(left.guide?.program ?? "");
+    const reference = guides.find(({ item }) => item.id === referenceId) ?? guides[0];
+    const a = guideWords(reference.guide?.program ?? "");
+    const pairs = guides.filter(({ item }) => item.id !== reference.item.id).map((right) => {
       const b = guideWords(right.guide?.program ?? "");
       const common = [...a].filter((word) => b.has(word));
-      return { left: left.item, right: right.item, common, union: new Set([...a, ...b]).size, comparable: a.size > 0 && b.size > 0 };
-    }));
+      return { left: reference.item, right: right.item, common, union: a.size + b.size - common.length, comparable: a.size > 0 && b.size > 0 };
+    });
     return <IndicatorCard title="Coincidencia entre temarios" source="Calculado a partir de guías">
-      <div className="grid gap-3 sm:grid-cols-2">
+      {guides.length > 2 && <label className="mb-3 block text-sm font-semibold">Asignatura de referencia
+        <select className="mt-1 block w-full rounded-lg border border-control-border bg-bg-card px-3 py-2 text-fg"
+          value={reference.item.id} onChange={(event) => setReferenceId(event.target.value)}>
+          {guides.map(({ item }) => <option key={item.id} value={item.id}>{item.name}</option>)}
+        </select>
+      </label>}
+      <div className="grid max-h-96 gap-3 overflow-auto sm:grid-cols-2">
         {pairs.map(({ left, right, common, union, comparable }) => <div key={left.id + right.id} className="rounded-lg border border-border p-3">
           <p className="text-sm font-semibold">{left.name} · {right.name}</p>
           {comparable ? <>
@@ -43,7 +52,7 @@ export function FormationComparison({ items, evidence, overlap = false }: {
   }
   if (!items.length) return null;
   return <IndicatorCard title="Temas y tecnologías" source="Calculado a partir de guías">
-    <div className="grid gap-3 sm:grid-cols-2">
+    <div className="grid max-h-[40rem] gap-3 overflow-auto sm:grid-cols-2">
       {guides.map(({ item, guide }) => {
         const matchingTopics = guide?.program ? topics.filter(([, pattern]) => pattern.test(guide.program)).map(([name]) => name) : [];
         const matchingTech = guide?.program ? technologies.filter((term) => new RegExp(`\\b${term}\\b`, "iu").test(guide.program)) : [];

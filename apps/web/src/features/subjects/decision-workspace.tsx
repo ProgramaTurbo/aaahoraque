@@ -4,7 +4,8 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { deleteScenario, saveDecision } from "@/app/subjects/decision/actions";
 import { addFavorite, removeFavorite } from "@/app/panel/favorite-actions";
 import { CatalogSearch } from "./catalog-search";
-import { comparisonLimit, StudentObservatory } from "./student-observatory";
+import { ScenarioComparison } from "./scenario-comparison";
+import { StudentObservatory } from "./student-observatory";
 import {
   creditsFormat, isOutsidePeriod, isPeriod, periodNames, selectionCredits, semesterName,
   type DecisionDraft, type DecisionSubject, type DecisionTab, type OfficialEvidence, type Period,
@@ -40,12 +41,15 @@ export function DecisionWorkspace({ planId, totalCredits, subjects, progress, de
   const [tab, setTab] = useState<DecisionTab>(initialTab);
   const workspaceNav = useRef<HTMLElement>(null);
   const [compared, setCompared] = useState<string[]>(() => [...new Set([subjectId, ...(progress?.shortlist ?? [])].filter((id): id is string =>
-    Boolean(id && subjects.some((subject) => subject.id === id))))].slice(0, comparisonLimit));
+    Boolean(id && subjects.some((subject) => subject.id === id))))]);
   const [draft, setDraft] = useState<DraftForm>(() => decisions.find((row) => row.kind === "draft") ?? defaultDraft);
   const scenarios = decisions.filter((row) => row.kind === "scenario");
   const [draftDirty, setDraftDirty] = useState(false);
   const [scenarioDirty, setScenarioDirty] = useState(false);
-  const [comparison, setComparison] = useState({ first: "", second: "" });
+  const [scenarioPeriod, setScenarioPeriod] = useState("all");
+  const [comparison, setComparison] = useState<string[]>([]);
+  const filteredScenarios = scenarios.filter((item) => scenarioPeriod === "all" || item.period === scenarioPeriod);
+  const comparedScenarios = scenarios.filter((item) => comparison.includes(item.id));
   const [scenario, setScenario] = useState<ScenarioForm>(() => {
     const saved = scenarios.find((option) => option.id === scenarioId);
     return saved ? { ...saved, name: saved.name ?? "", preferences: saved.preferences ?? emptySubjectPreferences() } :
@@ -67,8 +71,6 @@ export function DecisionWorkspace({ planId, totalCredits, subjects, progress, de
     return value !== null && value > 0;
   }).sort((a, b) => (progress.preferences[b] ?? 0) - (progress.preferences[a] ?? 0)).slice(0, 3)
     .map((key) => ({ key, label: preferenceLabels[key], value: progress.preferences[key] ?? 0 })) : [];
-  const scenarioA = scenarios.find((item) => item.id === comparison.first);
-  const scenarioB = scenarios.find((item) => item.id === comparison.second);
   const selectedSubjects = (ids: string[]) => ids.flatMap((id) => {
     const subject = byId.get(id);
     return subject ? [subject] : [];
@@ -145,10 +147,6 @@ export function DecisionWorkspace({ planId, totalCredits, subjects, progress, de
   }
 
   function addToDraft(id: string) {
-    if (draft.subjectIds.length >= 80 && !draft.subjectIds.includes(id)) {
-      setMessage({ text: "El borrador admite hasta 80 asignaturas.", error: true });
-      return;
-    }
     if (!draft.subjectIds.includes(id)) {
       const semester = byId.get(id)?.semester;
       const untouchedDraft = !draft.id && !draftDirty && draft.subjectIds.length === 0;
@@ -205,8 +203,14 @@ export function DecisionWorkspace({ planId, totalCredits, subjects, progress, de
           <h2 id="scenarios-title" className="text-xl font-semibold">Mis escenarios</h2>
           <p className={`${muted} mt-2`}>Guarda combinaciones con objetivos y prioridades propios.</p>
           <button type="button" onClick={() => newScenario()} disabled={pending} className={`${secondary} mt-4`}>Nuevo escenario</button>
-          {scenarios.length > 0 ? <ul className="mt-4 space-y-2">
-            {scenarios.map((saved) => <li key={saved.id}>
+          {scenarios.length > 0 && <label className="mt-4 block text-sm font-semibold">Periodo de los escenarios guardados
+            <select className={field} value={scenarioPeriod} onChange={(event) => setScenarioPeriod(event.target.value)}>
+              <option value="all">Todos los periodos</option>
+              {Object.entries(periodNames).map(([id, label]) => <option key={id} value={id}>{label}</option>)}
+            </select>
+          </label>}
+          {filteredScenarios.length > 0 ? <ul className="mt-4 max-h-96 space-y-2 overflow-auto">
+            {filteredScenarios.map((saved) => <li key={saved.id}>
               <button type="button" aria-pressed={scenario.id === saved.id} disabled={pending}
                 className={`${secondary} w-full text-left aria-pressed:border-subjects aria-pressed:bg-subjects-surface`}
                 onClick={() => {
@@ -218,7 +222,7 @@ export function DecisionWorkspace({ planId, totalCredits, subjects, progress, de
                 {saved.name}<span className={`${muted} mt-1 block font-normal`}>{periodNames[saved.period]} · {ects(selectionCredits(selectedSubjects(saved.subjectIds)))}</span>
               </button>
             </li>)}
-          </ul> : <p className={`${muted} mt-4`}>Todavía no tienes escenarios guardados.</p>}
+          </ul> : <p className={`${muted} mt-4`}>{scenarios.length ? "Sin escenarios guardados para ese periodo." : "Todavía no tienes escenarios guardados."}</p>}
         </div>
         <div className={card}>
           <h3 className="text-xl font-semibold">{scenario.id ? "Editar escenario" : "Nuevo escenario"}</h3>
@@ -226,7 +230,7 @@ export function DecisionWorkspace({ planId, totalCredits, subjects, progress, de
             <input className={field} value={scenario.name} maxLength={80} disabled={pending} placeholder="Optativas de datos"
               onChange={(event) => editScenario({ ...scenario, name: event.target.value })} />
           </label>
-          <PlanEditor value={scenario} onChange={editScenario} subjects={subjects} completed={completed} disabled={pending} />
+          <PlanEditor value={scenario} onChange={editScenario} subjects={subjects} completed={completed} disabled={pending} filterCandidates />
           <details className="mt-5 rounded-lg border border-border p-3">
             <summary className="cursor-pointer font-semibold">Prioridades de este escenario</summary>
             <p className={`${muted} mt-2`}>Puedes cambiar las prioridades para esta alternativa (0–10).</p>
@@ -256,10 +260,7 @@ export function DecisionWorkspace({ planId, totalCredits, subjects, progress, de
                 if (result.error) setMessage({ text: result.error, error: true });
                 else {
                   resetScenario();
-                  setComparison({
-                    first: comparison.first === id ? "" : comparison.first,
-                    second: comparison.second === id ? "" : comparison.second,
-                  });
+                  setComparison((current) => current.filter((selected) => selected !== id));
                   setMessage({ text: "Escenario eliminado." });
                 }
               });
@@ -269,16 +270,22 @@ export function DecisionWorkspace({ planId, totalCredits, subjects, progress, de
       </div>
       {scenarios.length >= 2 && <div className={card}>
         <h3 className="text-xl font-semibold">Comparar escenarios</h3>
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          {(["first", "second"] as const).map((slot, index) => <label key={slot} className="text-sm font-semibold">Escenario {index + 1}
-            <select className={field} value={comparison[slot]} onChange={(event) => setComparison({ ...comparison, [slot]: event.target.value })}>
-              <option value="">Seleccionar escenario</option>
-              {scenarios.filter((item) => item.id !== comparison[slot === "first" ? "second" : "first"]).map((item) =>
-                <option key={item.id} value={item.id}>{item.name}</option>)}
-            </select>
-          </label>)}
-        </div>
-        {scenarioA && scenarioB && <ScenarioComparison first={scenarioA} second={scenarioB} subjects={subjects} completed={completed} />}
+        <p className={`${muted} mt-2`}>Marca dos o más escenarios guardados. Podrás comparar el curso completo o un semestre sin cambiar lo guardado.</p>
+        <ul className="mt-3 grid max-h-60 gap-2 overflow-auto sm:grid-cols-2 lg:grid-cols-3">
+          {scenarios.map((item) => <li key={item.id}>
+            <label className="flex min-h-12 cursor-pointer items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm has-checked:border-subjects has-checked:bg-subjects-surface">
+              <input type="checkbox" aria-label={`Comparar escenario ${item.name}`} checked={comparison.includes(item.id)}
+                className="size-4 accent-subjects-fill" onChange={(event) => {
+                  const checked = event.target.checked;
+                  setComparison((current) => checked ? [...current, item.id] : current.filter((id) => id !== item.id));
+                }} />
+              <span>{item.name}<span className={`${muted} block text-xs`}>{periodNames[item.period]}</span></span>
+            </label>
+          </li>)}
+        </ul>
+        <p className={`${muted} mt-3`} role="status">{comparedScenarios.length} en comparación</p>
+        {comparedScenarios.length >= 2 && <ScenarioComparison scenarios={comparedScenarios}
+          subjects={subjects} completed={completed} history={history} evidence={evidence} />}
       </div>}
     </section>}
   </div>;
@@ -298,10 +305,15 @@ function SubjectSearch({ label, subjects, selected, disabled, onSelect }: {
     }))} />;
 }
 
-function PlanEditor<T extends DecisionDraft>({ value, onChange, subjects, completed, disabled }: {
-  value: T; onChange: (value: T) => void; subjects: DecisionSubject[]; completed: Set<string>; disabled: boolean;
+function PlanEditor<T extends DecisionDraft>({ value, onChange, subjects, completed, disabled, filterCandidates = false }: {
+  value: T; onChange: (value: T) => void; subjects: DecisionSubject[]; completed: Set<string>; disabled: boolean; filterCandidates?: boolean;
 }) {
-  const picked = subjects.filter((item) => value.subjectIds.includes(item.id));
+  const [candidateYear, setCandidateYear] = useState("all");
+  const pickedIds = new Set(value.subjectIds);
+  const picked = subjects.filter((item) => pickedIds.has(item.id));
+  const onPeriod = (subject: DecisionSubject) => value.period === "annual" || subject.semester === value.period || subject.semester === "annual";
+  const years = filterCandidates ? [...new Set(subjects.flatMap((item) => item.year === null ? [] : [item.year]))].sort((a, b) => a - b) : [];
+  const candidates = filterCandidates ? subjects.filter((item) => onPeriod(item) && (candidateYear === "all" || item.year === Number(candidateYear))) : subjects;
   const total = selectionCredits(picked);
   const target = validTarget(value.target) ? value.target : 0;
   const remaining = Math.round((target - total) * 100) / 100;
@@ -327,7 +339,13 @@ function PlanEditor<T extends DecisionDraft>({ value, onChange, subjects, comple
         <p className={muted}>{remaining > 0 ? `Faltan ${ects(remaining)} para tu objetivo.` : remaining < 0 ? `Superas el objetivo en ${ects(-remaining)}.` : "Has alcanzado tu objetivo de créditos."}</p>
       </>}
     </div>
-    <SubjectSearch label="Añadir asignatura" subjects={subjects} selected={value.subjectIds} disabled={disabled || picked.length >= 80}
+    {filterCandidates && years.length > 0 && <label className="block text-sm font-semibold">Curso del plan para añadir asignaturas
+      <select className={field} value={candidateYear} disabled={disabled} onChange={(event) => setCandidateYear(event.target.value)}>
+        <option value="all">Todos los cursos</option>
+        {years.map((year) => <option key={year} value={year}>{year}.º curso</option>)}
+      </select>
+    </label>}
+    <SubjectSearch label="Añadir asignatura" subjects={candidates} selected={value.subjectIds} disabled={disabled}
       onSelect={(id) => onChange({ ...value, subjectIds: [...value.subjectIds, id] })} />
     {picked.length > 0 && <ul className="divide-y divide-border">
       {picked.map((item) => <li key={item.id} className="flex flex-wrap items-start justify-between gap-2 py-3">
@@ -343,47 +361,12 @@ function PlanEditor<T extends DecisionDraft>({ value, onChange, subjects, comple
   </div>;
 }
 
-function SelectionWarnings({ subject, completed, period, contextual }: { subject: DecisionSubject; completed: boolean; period: Period; contextual?: boolean }) {
+function SelectionWarnings({ subject, completed, period }: { subject: DecisionSubject; completed: boolean; period: Period }) {
   const notes = [
     completed ? "Superada en tu expediente" : null,
     subject.knownUnavailable ? "No ofertada según el catálogo" : null,
     isOutsidePeriod(subject, period) ? "Figura en otro semestre" : null,
     subject.semester === null ? "Periodo sin confirmar" : null,
   ].filter(Boolean);
-  return notes.length ? <p className="mt-1 text-sm font-semibold text-subjects">{contextual && <strong>{subject.name} · </strong>}{notes.join(" · ")}</p> : null;
-}
-
-function ScenarioComparison({ first, second, subjects, completed }: {
-  first: SavedDecision; second: SavedDecision; subjects: DecisionSubject[]; completed: Set<string>;
-}) {
-  const onlyFirst = subjects.filter((item) => first.subjectIds.includes(item.id) && !second.subjectIds.includes(item.id));
-  const onlySecond = subjects.filter((item) => second.subjectIds.includes(item.id) && !first.subjectIds.includes(item.id));
-  const preferences = subjectPreferenceFields.filter((key) => (first.preferences?.[key] ?? null) !== (second.preferences?.[key] ?? null));
-  return <div className="mt-4 space-y-4">
-    <div className="grid gap-3 sm:grid-cols-2">
-      {([{ scenario: first, unique: onlyFirst }, { scenario: second, unique: onlySecond }]).map(({ scenario, unique }) => {
-        const items = subjects.filter((item) => scenario.subjectIds.includes(item.id));
-        return <article key={scenario.id} className="space-y-2 rounded-xl border border-border p-3">
-          <h4 className="font-semibold">{scenario.name}</h4>
-          <p className={muted}>{periodNames[scenario.period]} · {ects(selectionCredits(items))} de {ects(scenario.target)}</p>
-          <p className="text-sm font-medium">Asignaturas exclusivas</p>
-          {unique.length ? <ul className="space-y-1">
-            {unique.map((item) => <li key={item.id} className="text-sm">{item.name} · {ects(item.ects)}</li>)}
-          </ul> : <p className={muted}>Ninguna.</p>}
-          {items.map((item) => <SelectionWarnings key={item.id} subject={item} completed={completed.has(item.id)}
-            period={scenario.period} contextual />)}
-        </article>;
-      })}
-    </div>
-    {preferences.length > 0 && <div className="overflow-x-auto"><table className="w-full text-left text-sm">
-      <caption className="mb-2 text-left font-semibold">Prioridades que cambian</caption>
-      <thead><tr className="border-b border-border">
-        <th scope="col" className="p-2">Prioridad</th><th scope="col" className="p-2">{first.name}</th><th scope="col" className="p-2">{second.name}</th>
-      </tr></thead>
-      <tbody>{preferences.map((key) => <tr key={key} className="border-b border-border">
-        <th scope="row" className="p-2 font-medium">{preferenceLabels[key]}</th>
-        <td className="p-2">{first.preferences?.[key] ?? "Sin responder"}</td><td className="p-2">{second.preferences?.[key] ?? "Sin responder"}</td>
-      </tr>)}</tbody>
-    </table></div>}
-  </div>;
+  return notes.length ? <p className="mt-1 text-sm font-semibold text-subjects">{notes.join(" · ")}</p> : null;
 }
