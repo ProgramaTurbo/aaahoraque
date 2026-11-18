@@ -1,10 +1,11 @@
 "use client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { OrientationProfileView } from "./orientation-profile-view";
 import { OrientationTest } from "./orientation-test";
 import { DegreesWorkspace } from "./degrees-workspace";
 import { useOrientationSession } from "./orientation-session";
-import { createRandomProfile } from "./orientation-profile";
+import { createRandomProfile, orientationReviewStep } from "./orientation-profile";
 
 export function OrientationTestPage() {
   const session = useOrientationSession();
@@ -20,7 +21,7 @@ export function OrientationTestPage() {
     const profile = createRandomProfile();
     session.setProfile(profile);
     session.setDraft(profile);
-    session.setStep(5);
+    session.setStep(orientationReviewStep);
     session.setIsRandomProfile(true);
     router.push("/degrees/personalized-results");
   }
@@ -35,6 +36,6 @@ export function OrientationTestPage() {
 }
 export function OrientationResultsPage() {
   const { profile, isRandomProfile } = useOrientationSession();
-  if (!profile) return <section className="space-y-5 border border-[var(--color-border)] p-8"><h2 className="text-2xl font-semibold">Todavía no hay un perfil completado</h2><p>Completa el test para ver tus opciones afines. Las respuestas se conservan al navegar por Carreras y se borran al recargar la página.</p><Link href="/degrees/personalized-test" className="inline-block bg-degree-fill hover:bg-degree-fill-hover px-5 py-3 text-white">Ir al test de orientación</Link></section>;
-  return <div className="space-y-6">{isRandomProfile && <p role="status" className="border border-[var(--color-degree)] bg-[var(--color-bg-card)] p-4 text-sm">Perfil de prueba generado aleatoriamente. Las respuestas son simuladas; puedes revisarlas y modificarlas.</p>}<Link href="/degrees/personalized-test" className="text-[var(--color-degree-bright)] underline">Revisar mis respuestas y recalcular</Link><DegreesWorkspace key={JSON.stringify(profile)} profile={profile} /></div>;
+  if (!profile) return <section className="space-y-5 border border-[var(--color-border)] p-8"><h2 className="text-2xl font-semibold">Todavía no hay un perfil completado</h2><p>Completa el test para ver tus opciones afines. Puedes recuperar tu borrador en esta pestaña desde el test.</p><Link href="/degrees/personalized-test" className="inline-block bg-[var(--color-degree)] px-5 py-3 text-white">Ir al test de orientación</Link></section>;
+  return <div className="space-y-6">{isRandomProfile && <p role="status" className="border border-[var(--color-degree)] bg-[var(--color-bg-card)] p-4 text-sm">Perfil de prueba generado aleatoriamente. Las respuestas son simuladas; puedes revisarlas y modificarlas.</p>}<Link href="/degrees/personalized-test" className="text-[var(--color-degree-bright)] underline">Revisar mis respuestas y recalcular</Link><details className="space-y-4 border border-[var(--color-border)] p-5"><summary className="cursor-pointer font-semibold">Ver mi perfil y sus valoraciones</summary><OrientationProfileView profile={profile} /></details><DegreesWorkspace key={JSON.stringify(profile)} profile={profile} /></div>;
 }

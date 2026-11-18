@@ -18,11 +18,25 @@ AREAS = {
     "arts": ["arte", "diseno", "musica", "audiovisual", "cine", "animacion", "conservacion", "publicidad"],
 }
 
+INTEREST_PAIRS = {
+    'technology:arts': ('technology', 'arts'),
+    'arts:health': ('arts', 'health'),
+    'health:business': ('health', 'business'),
+    'business:engineering': ('business', 'engineering'),
+    'engineering:humanities': ('engineering', 'humanities'),
+    'humanities:social': ('humanities', 'social'),
+    'social:science': ('social', 'science'),
+    'science:technology': ('science', 'technology'),
+}
+
 def norm(text: str) -> str:
     return "".join(c for c in unicodedata.normalize("NFD", text.lower()) if unicodedata.category(c) != "Mn")
 
 class OrientationProfile(BaseModel):
+    area_interest_scores: dict[str, float] | None = None
+    calculation_version: str | None = None
     interests: dict[str, Literal["like", "dislike"]] = Field(default_factory=dict)
+    interest_choices: dict[str, Literal["A", "B"]] = Field(default_factory=dict, max_length=len(INTEREST_PAIRS))
     aptitudes: dict[str, int] = Field(default_factory=dict)
     activities: list[str] = Field(default_factory=list)
     goals: list[str] = Field(default_factory=list)
@@ -62,12 +76,28 @@ def analyze(request: OrientationRequest) -> dict:
         raise ValueError("Autoevaluación fuera de rango")
     if any(key not in {"interests", "location", "modality"} or not 0 <= value <= 5 for key, value in p.priorities.items()):
         raise ValueError("Prioridad no válida")
+    if p.area_interest_scores is not None:
+        if any(key not in AREAS or not 0 <= score <= 100 for key, score in p.area_interest_scores.items()):
+            raise ValueError("Puntuación de interés declarada no válida")
+        interest_scores = dict(p.area_interest_scores)
+    else:
+        signals: dict[str, list[float]] = {}
+        for pair, choice in p.interest_choices.items():
+            if pair not in INTEREST_PAIRS:
+                raise ValueError("Pareja de intereses no válida")
+            a, b = INTEREST_PAIRS[pair]
+            signals.setdefault(a, []).append(100 if choice == "A" else 0)
+            signals.setdefault(b, []).append(100 if choice == "B" else 0)
+        interest_scores = {area: sum(values) / len(values) for area, values in signals.items()}
+        for area, interest in p.interests.items():
+            declared = 100 if interest == "like" else 0
+            interest_scores[area] = (interest_scores[area] + declared) / 2 if area in interest_scores else declared
     allowed = {norm(value) for value in p.allowed_provinces}
     if p.mobility in {"prefer_province", "require_province"}:
         allowed = {norm(p.origin_province)} if p.origin_province else set()
     location_active = p.mobility not in {"unknown", "anywhere"} and bool(allowed)
     active = []
-    if p.interests and p.priorities.get("interests", 0) > 0: active.append("interests")
+    if interest_scores and p.priorities.get("interests", 0) > 0: active.append("interests")
     if location_active and p.priorities.get("location", 0) > 0: active.append("location")
     if p.modality != "unknown" and p.priorities.get("modality", 0) > 0: active.append("modality")
     results, excluded = [], 0
@@ -76,9 +106,9 @@ def analyze(request: OrientationRequest) -> dict:
         areas = [key for key, words in AREAS.items() if any(word in name for word in words)]
         scores, reasons, pending, violations = {}, [], ["Admisión y requisitos oficiales sin verificar"], []
         if "interests" in active:
-            known = [key for key in areas if key in p.interests]
+            known = [key for key in areas if key in interest_scores]
             if known:
-                scores["interests"] = sum(100 if p.interests[key] == "like" else 0 for key in known) / len(known)
+                scores["interests"] = sum(interest_scores[key] for key in known) / len(known)
                 reasons.append("Intereses: coincidencia provisional por el nombre de la titulación, no por un análisis de su plan")
             else:
                 pending.append("No hay una relación documentada entre tus intereses y esta titulación")
@@ -127,6 +157,7 @@ def analyze(request: OrientationRequest) -> dict:
     # No global ranking between complete and incomplete aggregates. Nulls follow with explanation.
     results.sort(key=lambda r: (r["score"] is None, -(r["score"] or 0), r["id"]))
     return {"alternatives": results, "excluded": excluded, "active_criteria": active,
+        "area_interest_scores": interest_scores,
         "method": "orientation-v1-name-heuristic", "partial": not bool(active)}
 
 @router.post("/orient")
