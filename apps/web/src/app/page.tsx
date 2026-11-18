@@ -63,6 +63,14 @@ export default async function Home() {
         </div>
 
         <HomeExploreCarousel />
+        <section className="mb-14 flex flex-wrap items-center justify-between gap-5 border-y border-[var(--color-border)] py-6">
+          <div>
+            <h2 className="font-display text-2xl">¿Por dónde empiezo?</h2>
+            <p className="mt-2 text-sm text-[var(--color-fg-dim)]">Encuentra la herramienta adecuada para tu decisión. Puedes probarla como invitado.</p>
+          </div>
+          <Link href="/orientacion-rapida" className="border border-[var(--color-accent)] px-5 py-3 font-semibold hover:bg-white/5">Hacer el test rápido →</Link>
+        </section>
+
 
         {/* Contador Animado (Trae datos de la BBDD) */}
         {statsData ? <StatsCounter stats={statsArray} /> : <p role="status" className="mb-16 text-sm text-[var(--color-fg-dim)]">Las estadísticas académicas no están disponibles en este momento.</p>}

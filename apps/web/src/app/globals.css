@@ -2,7 +2,7 @@
 
 /* =====================================================================
    AAAhoraQue — Design System
-   Paleta: Morado (general) → Azul (carreras) → Verde (erasmus) → Aqua (asignaturas)
+   Paleta: Morado (general) → Azul pizarra (carreras) → Verde (erasmus) → Aqua (asignaturas)
    Inspiración: editorial noir, grano, reveals, scan lines
    ===================================================================== */
 
@@ -16,7 +16,7 @@
   /* --- Foregrounds --- */
   --color-fg: #f5f0ff;
   --color-fg-dim: #c0b8d8;
-  --color-muted: #6a6280;
+  --color-muted: #aaa1ba;
   --color-silver: #c8c0e0;
   --color-silver-dim: #5a5470;
 
@@ -27,10 +27,12 @@
   --color-accent-glow: rgba(139, 92, 246, 0.45);
 
   /* --- Módulo Carreras: Azul --- */
-  --color-degree: #3b82f6;
-  --color-degree-bright: #60a5fa;
-  --color-degree-dim: #1d4ed8;
-  --color-degree-glow: rgba(59, 130, 246, 0.4);
+  --color-degree: #9bb5e2;
+  --color-degree-bright: #bbcff1;
+  --color-degree-dim: #6886ba;
+  --color-degree-fill: #435d8c;
+  --color-degree-fill-hover: #4a6699;
+  --color-degree-glow: rgba(104, 134, 186, 0.34);
 
   /* --- Módulo Erasmus: Verde --- */
   --color-erasmus: #10b981;
@@ -39,10 +41,31 @@
   --color-erasmus-glow: rgba(16, 185, 129, 0.4);
 
   /* --- Módulo Asignaturas: Aqua --- */
-  --color-subjects: #06b6d4;
-  --color-subjects-bright: #22d3ee;
-  --color-subjects-dim: #0e7490;
-  --color-subjects-glow: rgba(6, 182, 212, 0.4);
+  --color-subjects: #8ddbd0;
+  --color-subjects-bright: #b2e9e1;
+  --color-subjects-dim: #559e96;
+  --color-subjects-glow: rgba(85, 158, 150, 0.34);
+  --color-subjects-surface: #172e31;
+  --color-subjects-highlight: #214347;
+  --color-subjects-border: #527a7c;
+  --color-subjects-fill: #8ddbd0;
+  --color-subjects-fill-hover: #b2e9e1;
+  --color-subjects-on-fill: #102e31;
+
+  /* --- Panel y estados --- */
+  --color-panel-start: #201a33;
+  --color-panel-end: #172e31;
+  --color-warning-fg: #f4d296;
+  --color-warning-bg: #382a1b;
+  --color-error-fg: #fdaebd;
+  --color-success-fg: #9fe0be;
+  --color-control-border: #81758f;
+  --color-chart-slate: #9eacbf;
+  --color-chart-violet: #b58bf7;
+  --color-chart-amber: #f0b66a;
+  --color-chart-rose: #e48a85;
+  --color-chart-green: #67d6ad;
+  --color-chart-aqua: #76bfce;
 
   /* --- Bordes --- */
   --color-border: #1f1830;
@@ -63,7 +86,7 @@
    ===================================================================== */
 
 * { box-sizing: border-box; }
-html { scroll-behavior: smooth; }
+html { color-scheme: dark; scroll-behavior: smooth; }
 
 body {
   background: var(--color-bg);
@@ -114,7 +137,7 @@ body {
   background-color: var(--color-bg);
   background-image:
     radial-gradient(circle at 20% 30%, rgba(59, 130, 246, 0.08) 0%, transparent 45%),
-    radial-gradient(circle at 80% 70%, rgba(59, 130, 246, 0.04) 0%, transparent 40%);
+    radial-gradient(circle at 80% 70%, color-mix(in srgb, var(--color-degree) 4%, transparent) 0%, transparent 40%);
 }
 
 .bg-textured-erasmus {
@@ -410,16 +433,18 @@ body {
 }
 
 .goal-pill-degree.active {
-  background: var(--color-degree);
-  border-color: var(--color-degree);
+  background: var(--color-degree-fill);
+  border-color: var(--color-degree-fill);
+  color: #fff;
 }
 .goal-pill-erasmus.active {
   background: var(--color-erasmus);
   border-color: var(--color-erasmus);
 }
 .goal-pill-subjects.active {
-  background: var(--color-subjects);
-  border-color: var(--color-subjects);
+  background: var(--color-subjects-fill);
+  border-color: var(--color-subjects-fill);
+  color: var(--color-subjects-on-fill);
 }
 
 /* =====================================================================
@@ -483,7 +508,7 @@ body {
 }
 
 .booking-frame-degree {
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.04) 0%, transparent 50%, rgba(59, 130, 246, 0.02) 100%);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--color-degree) 4%, transparent) 0%, transparent 50%, color-mix(in srgb, var(--color-degree) 2%, transparent) 100%);
 }
 .booking-frame-degree::before,
 .booking-frame-degree::after {
@@ -788,9 +813,38 @@ body {
     --color-bg-card-hover: #f5f0ff;
     --color-fg: #1a152a;
     --color-fg-dim: #4a4260;
-    --color-muted: #8a82a0;
+    color-scheme: light;
+    --color-muted: #665d78;
     --color-border: #e0d8f0;
     --color-border-light: #d0c8e0;
+    --color-accent-bright: #6037a5;
+    --color-degree: #375682;
+    --color-degree-bright: #2d4973;
+    --color-degree-dim: #55729d;
+    --color-degree-fill: #3b5885;
+    --color-degree-fill-hover: #304b76;
+    --color-subjects: #175c64;
+    --color-subjects-bright: #124d55;
+    --color-subjects-dim: #306d75;
+    --color-subjects-surface: #e8f5f2;
+    --color-subjects-highlight: #d4ede8;
+    --color-subjects-border: #709c99;
+    --color-subjects-fill: #176169;
+    --color-subjects-fill-hover: #114e56;
+    --color-subjects-on-fill: #ffffff;
+    --color-panel-start: #f3eefb;
+    --color-panel-end: #e8f5f2;
+    --color-warning-fg: #75450c;
+    --color-warning-bg: #fff2dc;
+    --color-error-fg: #a32648;
+    --color-success-fg: #216045;
+    --color-control-border: #82748e;
+    --color-chart-slate: #53637b;
+    --color-chart-violet: #7046a8;
+    --color-chart-amber: #986015;
+    --color-chart-rose: #a8494c;
+    --color-chart-green: #257356;
+    --color-chart-aqua: #347486;
   }
   .grain { opacity: 0.04; mix-blend-mode: multiply; }
   .hero-overlay {

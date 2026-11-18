@@ -36,6 +36,20 @@
       "when": 1793295164127,
       "tag": "0004_joint-programs",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1794843869431,
+      "tag": "0005_shared-account-panel",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1794850260011,
+      "tag": "0006_student-decision-panel",
+      "breakpoints": true
     }
   ]
 }

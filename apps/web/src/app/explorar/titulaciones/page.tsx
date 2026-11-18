@@ -172,7 +172,7 @@ export default async function ExploreDegreesPage({
 
           <button
             type="submit"
-            className="self-end bg-[var(--color-degree)] px-8 py-4 font-semibold text-white transition-opacity hover:opacity-90"
+            className="self-end bg-degree-fill hover:bg-degree-fill-hover px-8 py-4 font-semibold text-white transition-opacity hover:opacity-90"
           >
             Buscar
           </button>

@@ -2,8 +2,9 @@
 
 import { useMemo, useState } from "react";
 import type { ReactNode, ChangeEvent } from "react";
+import { GuideExtract, ObservatoryBars } from "./observatory-charts";
 import type {
-  Demo716Payload, DemoSubject, SubjectStats, MentionYear,
+  Demo716Payload, DemoSubject, SubjectStats,
 } from "@/lib/subjects/demo716-types";
 
 type Category = "A" | "B" | "C" | "D" | "E" | "F";
@@ -94,7 +95,7 @@ function Panel({metric,children,small=false}:{metric:Metric;children:ReactNode;s
     <div className="mb-4 flex items-start justify-between gap-2">
       <div className="min-w-0"><p className="font-mono text-[10px] tracking-widest text-[var(--color-subjects)]">{String(metric.id).padStart(2,"0")} / INDICADOR</p>
         <h3 className="mt-1 font-heading text-base font-semibold leading-snug md:text-lg">{metric.title}</h3></div>
-      <span className={`shrink-0 border px-2 py-1 text-[10px] ${metric.source==="Pendiente"?"border-amber-500/30 text-amber-300":"border-[var(--color-border-light)] text-[var(--color-fg-dim)]"}`}>{metric.source}</span>
+      <span className={`shrink-0 border px-2 py-1 text-[10px] ${metric.source==="Pendiente"?"border-border-light text-warning-fg":"border-[var(--color-border-light)] text-[var(--color-fg-dim)]"}`}>{metric.source}</span>
     </div>
     <div className="min-h-20">{children}</div>
     <p className="mt-4 border-t border-[var(--color-border)] pt-3 text-[11px] leading-relaxed text-[var(--color-fg-dim)]">{metric.explanation}</p>
@@ -104,20 +105,11 @@ function Empty({why}:{why?:string}) {
   return <div className="flex min-h-32 items-center justify-center border border-dashed border-[var(--color-border-light)] px-5 text-center text-sm text-[var(--color-fg-dim)]">{why??"Datos insuficientes con estos filtros."}</div>;
 }
 function BarChart({values,unit="",maxRows=9,highlight=[]}:{values:{id:string;name:string;value:number|null;n?:number}[];unit?:string;maxRows?:number;highlight?:string[]}){
-  const usable=values.filter(v=>v.value!==null) as {id:string;name:string;value:number;n?:number}[];
-  if(!usable.length) return <Empty/>;
-  const vmax=Math.max(...usable.map(v=>v.value),0.01);
-  return <div className="max-h-[320px] space-y-2.5 overflow-y-auto pr-1" role="img" aria-label={`Comparación de ${usable.length} asignaturas`}>
-    {usable.slice(0,maxRows===-1?undefined:maxRows).map(v=><div key={v.id} title={`${v.name}: ${fmt(v.value)}${unit}${v.n!==undefined?` · n=${ni.format(v.n)}`:""}`}>
-      <div className="mb-1 flex items-baseline justify-between gap-3 text-xs"><span className={`min-w-0 truncate ${highlight.includes(v.id)?"font-semibold text-[var(--color-subjects)]":"text-[var(--color-fg)]"}`}>{v.name}</span><span className="shrink-0 font-mono tabular-nums">{fmt(v.value)}{unit}</span></div>
-      <div className="h-2 overflow-hidden rounded-sm bg-white/10"><div className={`h-full ${highlight.includes(v.id)?"bg-[var(--color-subjects)]":"bg-sky-400/50"}`} style={{width:`${Math.min(100,percent(v.value,vmax))}%`}}/></div>
-    </div>)}
-    {maxRows>0&&usable.length>maxRows&&<p className="text-xs text-[var(--color-fg-dim)]">Mostradas {maxRows} de {usable.length}. Filtra por mención o selecciona asignaturas para reducir la lista.</p>}
-  </div>;
+  return <ObservatoryBars values={values} unit={unit} maxRows={maxRows} highlight={highlight} label="Comparación de asignaturas" />;
 }
 function Breakdown({values}:{values:{label:string;n:number;color:string}[]}){
   const total=values.reduce((a,b)=>a+b.n,0);
-  return <div><div className="flex h-7 overflow-hidden rounded-sm bg-white/10" role="img" aria-label={values.map(v=>`${v.label}: ${ni.format(v.n)}`).join(", ")}>
+  return <div><div className="flex h-7 overflow-hidden rounded-sm bg-bg-darker" role="img" aria-label={values.map(v=>`${v.label}: ${ni.format(v.n)}`).join(", ")}>
     {values.map(v=><div key={v.label} title={`${v.label}: ${ni.format(v.n)} (${fmt(percent(v.n,total))} %) `} style={{width:`${percent(v.n,total)}%`,backgroundColor:v.color}}/>)}
     </div><div className="mt-4 grid grid-cols-2 gap-2 text-xs">{values.map(v=><div key={v.label} className="flex items-center gap-2"><span className="h-2.5 w-2.5 shrink-0" style={{backgroundColor:v.color}}/>{v.label}: <strong className="ml-auto">{fmt(percent(v.n,total))}%</strong></div>)}</div>
   </div>;
@@ -145,11 +137,11 @@ function Scatter({points,xLabel,yLabel,xMax,yMax,scale=false}:{points:{name:stri
   </svg><p className="mt-2 text-[11px] text-[var(--color-fg-dim)]">Pasa el cursor sobre cada punto para ver la asignatura y su muestra.</p></div>;
 }
 function Transcript({text,sourceUrl,kind="Guía oficial"}:{text:string;sourceUrl?:string;kind?:string}){
-  return <div className="rounded-sm bg-white/[0.035] p-4 text-xs leading-relaxed text-[var(--color-fg-dim)]"><p className="max-h-40 overflow-auto whitespace-pre-line">{text||"No se ha recuperado esta sección."}</p>{sourceUrl&&<a href={sourceUrl} target="_blank" rel="noopener noreferrer" className="mt-3 inline-block text-[var(--color-subjects)] hover:underline">Abrir {kind} ↗</a>}</div>;
+  return <GuideExtract text={text || "No se ha recuperado esta sección."} sourceUrl={sourceUrl} sourceLabel={`Abrir ${kind.toLocaleLowerCase("es")}`} />;
 }
 function SelectionList({subjects,selected,toggle}:{subjects:DemoSubject[];selected:string[];toggle:(id:string)=>void}){
   return <div className="max-h-80 overflow-y-auto divide-y divide-[var(--color-border)]">{subjects.map(s=><label key={s.id} className="flex cursor-pointer items-center gap-3 py-2.5 text-sm">
-    <input type="checkbox" className="h-4 w-4 shrink-0 accent-cyan-400" checked={selected.includes(s.id)} disabled={!selected.includes(s.id)&&selected.length>=4} onChange={()=>toggle(s.id)}/>
+    <input type="checkbox" className="h-4 w-4 shrink-0 accent-subjects-fill" checked={selected.includes(s.id)} disabled={!selected.includes(s.id)&&selected.length>=4} onChange={()=>toggle(s.id)}/>
     <span className="min-w-0 flex-1 truncate">{s.name}</span>
     <span className="shrink-0 font-mono text-xs text-[var(--color-fg-dim)]">{fmt(s.ects)} ECTS</span>
   </label>)}</div>;
@@ -189,13 +181,12 @@ export function SubjectsDemoDashboard({data}:{data:Demo716Payload}){
   const focus=detailId?subjectById.get(detailId):selectedSubjects[0];
   const current=CATEGORIES.find(c=>c.key===category)!;
   const years=[...new Set(data.mentionYears.map(y=>y.year))].sort();
-  const catsColors=["#32d1d8","#7aa6ff","#b58bf7","#f0b66a","#9eacbf"];
+  const catsColors=["var(--color-subjects)","var(--color-degree)","var(--color-chart-violet)","var(--color-chart-amber)","var(--color-chart-slate)"];
   const toggle=(id:string)=>setSelection(old=>old.includes(id)?old.filter(v=>v!==id):old.length>=4?old:[...old,id]);
-  const metric=(id:number)=>current.metrics.find(m=>m.id===id)!;
   const hist=visible.length?bySubject.get(visible[0].id)??empty():empty();
   const bars=(calc:(s:DemoSubject,t:Totals)=>number|null,unit="",take=14)=><BarChart unit={unit} maxRows={take} highlight={selection} values={entries.map(({s,t})=>({id:s.id,name:s.name,value:calc(s,t),n:t.n}))}/>;
   const displayYears=years.map((y,i)=>({year:y,index:i}));
-  const annualSubjectLines=(get:(t:Totals)=>number|null,max=10)=>visible.slice(0,4).map((s,i)=>({name:choose(s),color:catsColors[i],values:displayYears.map(({year})=>{const t=summarize(data.stats.filter(r=>r.subjectId===s.id&&(mention==="all"||r.mentionCode===mention)&&r.cohort===year));return {x:year,y:get(t)};})}));
+  const annualSubjectLines=(get:(t:Totals)=>number|null)=>visible.slice(0,4).map((s,i)=>({name:choose(s),color:catsColors[i],values:displayYears.map(({year})=>{const t=summarize(data.stats.filter(r=>r.subjectId===s.id&&(mention==="all"||r.mentionCode===mention)&&r.cohort===year));return {x:year,y:get(t)};})}));
   const points=(f:(s:DemoSubject,t:Totals)=>{x:number|null;y:number|null})=>entries.flatMap(({s,t})=>{const z=f(s,t);return z.x===null||z.y===null?[]:[{name:s.name,x:z.x,y:z.y,n:t.n}];});
   const guideCount=data.subjects.filter(s=>s.guide!==null).length;
   const eligibleCount=data.subjects.filter(s=>s.availability==="listed").length;
@@ -204,7 +195,7 @@ export function SubjectsDemoDashboard({data}:{data:Demo716Payload}){
   function panelContent(id:number):ReactNode{
     switch(id){
       case 1:return bars((_,t)=>avgGrade(t)," / 10",-1);
-      case 2:{const off=data.official.find(v=>v.subjectId===visible[0]?.id);return <><p className="mb-3 text-sm font-medium">{visible[0]?.name??"Selecciona una optativa"}</p><p className="mb-2 text-xs text-[var(--color-fg-dim)]">Resultados individuales sintéticos · n={ni.format(hist.presented)} presentados</p><Breakdown values={[{label:"Suspenso",n:hist.grade0,color:"#e48a85"},{label:"5–6,9",n:hist.grade5,color:"#e4bd6b"},{label:"7–8,9",n:hist.grade7,color:"#67b9cb"},{label:"9–10",n:hist.grade9,color:"#67d6ad"}]}/>{off&&<div className="mt-5 border-t border-[var(--color-border)] pt-4"><p className="mb-3 text-xs text-[var(--color-fg-dim)]">Referencia oficial agregada {off.course} · n={ni.format(off.failed+off.pass+off.merit+off.distinction+off.honours)} presentados</p><Breakdown values={[{label:"Suspenso",n:off.failed,color:"#e48a85"},{label:"Aprobado",n:off.pass,color:"#e4bd6b"},{label:"Notable",n:off.merit,color:"#67b9cb"},{label:"Sobresal. + MH",n:off.distinction+off.honours,color:"#67d6ad"}]}/><a href={off.sourceUrl} target="_blank" rel="noopener noreferrer" className="mt-3 inline-block text-xs text-[var(--color-subjects)]">Ver informe oficial ↗</a></div>}</>;}
+      case 2:{const off=data.official.find(v=>v.subjectId===visible[0]?.id);return <><p className="mb-3 text-sm font-medium">{visible[0]?.name??"Selecciona una optativa"}</p><p className="mb-2 text-xs text-[var(--color-fg-dim)]">Resultados individuales sintéticos · n={ni.format(hist.presented)} presentados</p><Breakdown values={[{label:"Suspenso",n:hist.grade0,color:"var(--color-chart-rose)"},{label:"5–6,9",n:hist.grade5,color:"var(--color-chart-amber)"},{label:"7–8,9",n:hist.grade7,color:"var(--color-chart-aqua)"},{label:"9–10",n:hist.grade9,color:"var(--color-chart-green)"}]}/>{off&&<div className="mt-5 border-t border-[var(--color-border)] pt-4"><p className="mb-3 text-xs text-[var(--color-fg-dim)]">Referencia oficial agregada {off.course} · n={ni.format(off.failed+off.pass+off.merit+off.distinction+off.honours)} presentados</p><Breakdown values={[{label:"Suspenso",n:off.failed,color:"var(--color-chart-rose)"},{label:"Aprobado",n:off.pass,color:"var(--color-chart-amber)"},{label:"Notable",n:off.merit,color:"var(--color-chart-aqua)"},{label:"Sobresal. + MH",n:off.distinction+off.honours,color:"var(--color-chart-green)"}]}/><a href={off.sourceUrl} target="_blank" rel="noopener noreferrer" className="mt-3 inline-block text-xs text-[var(--color-subjects)]">Ver informe oficial ↗</a></div>}</>;}
 
       case 3:return bars((_,t)=>t.n?percent(t.passed,t.n):null," %",-1);
       case 5:return bars((_,t)=>t.presented?percent(t.grade9,t.presented):null," %",-1);
@@ -215,7 +206,7 @@ export function SubjectsDemoDashboard({data}:{data:Demo716Payload}){
       case 10:return bars((_,t)=>avgHours(t)," h/sem",-1);
       case 11:return bars((_,t)=>avgDifficulty(t)," / 5",-1);
       case 12:return bars(s=>s.ects," ECTS",-1);
-      case 13:return focus?.guide?<><p className="mb-3 text-sm font-medium">{focus.name}</p><Transcript text={focus.guide.assessment} sourceUrl={focus.guide.sourceUrl}/>{focus.guide.multicenter&&<p className="mt-2 text-xs text-amber-300">Guía multicentro: revisa qué partes se aplican a EINA.</p>}</>:<Empty why="Carga el esquema de guías para ver los criterios de evaluación."/>;
+      case 13:return focus?.guide?<><p className="mb-3 text-sm font-medium">{focus.name}</p><Transcript text={focus.guide.assessment} sourceUrl={focus.guide.sourceUrl}/>{focus.guide.multicenter&&<p className="mt-2 text-xs text-warning-fg">Guía multicentro: revisa qué partes se aplican a EINA.</p>}</>:<Empty why="Carga el esquema de guías para ver los criterios de evaluación."/>;
       case 14:return <p className="text-3xl font-display text-[var(--color-subjects)]">{data.subjects.filter(s=>s.guide?.signals.some(v=>/continua/i.test(v))).length} <span className="text-base text-[var(--color-fg-dim)]">/ {guideCount} guías</span></p>;
       case 15:{const labels=["Examen","Prácticas","Trabajos","Proyectos","Trabajo en grupo","Evaluación continua"];return <BarChart maxRows={-1} values={labels.map(v=>({id:v,name:v,value:data.subjects.filter(s=>s.guide?.signals.some(k=>k.toLowerCase()===v.toLowerCase())).length}))}/>;}
       case 17:return <p className="font-display text-3xl text-[var(--color-subjects)]">{data.subjects.filter(s=>s.guide?.signals.some(v=>/grupo/i.test(v))).length} <span className="text-base text-[var(--color-fg-dim)]">guías mencionan grupo</span></p>;
@@ -231,10 +222,10 @@ export function SubjectsDemoDashboard({data}:{data:Demo716Payload}){
       case 29:return <Lines series={annualSubjectLines(t=>t.n||null)} yMax={Math.max(1,...annualSubjectLines(t=>t.n||null).flatMap(s=>s.values.map(v=>v.y??0)))*1.1}/>;
       case 30:{const rs=new Map<string,number>();for(const r of data.reasons)if((mention==="all"||r.mentionCode===mention)&&(cohort==="all"||r.cohort===cohort))rs.set(r.reason,(rs.get(r.reason)??0)+r.count);return <BarChart maxRows={-1} values={[...rs.entries()].map(([reason,value])=>({id:reason,name:reason.replaceAll("_"," "),value}))}/>;}
       case 33:return <BarChart maxRows={-1} unit=" / 5" values={data.interests.map(r=>({id:r.interest,name:names[r.interest]??r.interest,value:r.satisfaction,n:r.responses}))}/>;
-      case 46:{const ys=years.map(year=>({year,parts:data.mentionYears.filter(z=>z.year===year)}));const largest=Math.max(...ys.map(y=>y.parts.reduce((a,b)=>a+b.n,0)),1);return <div className="space-y-2">{ys.map(y=><div key={y.year} className="flex items-center gap-2 text-xs"><span className="w-16 shrink-0 text-[var(--color-fg-dim)]">{y.year.slice(0,4)}</span><div className="flex h-5 min-w-0 flex-1 overflow-hidden bg-white/5" style={{maxWidth:`${percent(y.parts.reduce((a,b)=>a+b.n,0),largest)}%`}}>{data.mentions.map((m,i)=>{const n=y.parts.find(p=>p.mentionCode===m.code)?.n??0;return <div key={m.code} style={{width:`${percent(n,y.parts.reduce((a,b)=>a+b.n,0))}%`,backgroundColor:catsColors[i]}} title={`${y.year} · ${m.name}: ${ni.format(n)} alumnos ficticios`}/>})}</div><span className="w-12 shrink-0 text-right tabular-nums">{ni.format(y.parts.reduce((a,b)=>a+b.n,0))}</span></div>)}<div className="mt-3 flex flex-wrap gap-2 text-[10px]">{data.mentions.map((m,i)=><span key={m.code} className="flex items-center gap-1"><i className="h-2 w-2" style={{background:catsColors[i]}}/>{m.name}</span>)}</div></div>}
-      case 34:return <Breakdown values={[{label:"Primer semestre",n:data.subjects.filter(s=>s.semester==="1").length,color:"#32d1d8"},{label:"Segundo semestre",n:data.subjects.filter(s=>s.semester==="2").length,color:"#7aa6ff"},{label:"Anual",n:data.subjects.filter(s=>s.semester==="annual").length,color:"#b58bf7"},{label:"Desconocido",n:data.subjects.filter(s=>!s.semester||!["1","2","annual"].includes(s.semester)).length,color:"#e4bd6b"}]}/>;
+      case 46:{const ys=years.map(year=>({year,parts:data.mentionYears.filter(z=>z.year===year)}));const largest=Math.max(...ys.map(y=>y.parts.reduce((a,b)=>a+b.n,0)),1);return <div className="space-y-2">{ys.map(y=><div key={y.year} className="flex items-center gap-2 text-xs"><span className="w-16 shrink-0 text-[var(--color-fg-dim)]">{y.year.slice(0,4)}</span><div className="flex h-5 min-w-0 flex-1 overflow-hidden bg-bg-card-hover" style={{maxWidth:`${percent(y.parts.reduce((a,b)=>a+b.n,0),largest)}%`}}>{data.mentions.map((m,i)=>{const n=y.parts.find(p=>p.mentionCode===m.code)?.n??0;return <div key={m.code} style={{width:`${percent(n,y.parts.reduce((a,b)=>a+b.n,0))}%`,backgroundColor:catsColors[i]}} title={`${y.year} · ${m.name}: ${ni.format(n)} alumnos ficticios`}/>})}</div><span className="w-12 shrink-0 text-right tabular-nums">{ni.format(y.parts.reduce((a,b)=>a+b.n,0))}</span></div>)}<div className="mt-3 flex flex-wrap gap-2 text-[10px]">{data.mentions.map((m,i)=><span key={m.code} className="flex items-center gap-1"><i className="h-2 w-2" style={{background:catsColors[i]}}/>{m.name}</span>)}</div></div>}
+      case 34:return <Breakdown values={[{label:"Primer semestre",n:data.subjects.filter(s=>s.semester==="1").length,color:"var(--color-subjects)"},{label:"Segundo semestre",n:data.subjects.filter(s=>s.semester==="2").length,color:"var(--color-degree)"},{label:"Anual",n:data.subjects.filter(s=>s.semester==="annual").length,color:"var(--color-chart-violet)"},{label:"Desconocido",n:data.subjects.filter(s=>!s.semester||!["1","2","annual"].includes(s.semester)).length,color:"var(--color-chart-amber)"}]}/>;
       case 38:return <><p className="font-display text-4xl text-[var(--color-subjects)]">{fmt(selectedCredits)} <span className="text-base">ECTS</span></p><p className="mt-3 text-sm text-[var(--color-fg-dim)]">{selectedSubjects.length} asignaturas seleccionadas. No implica matrícula válida ni certifica requisitos.</p><BarChart values={selectedSubjects.map(s=>({id:s.id,name:s.name,value:s.ects}))} maxRows={-1} unit=" ECTS"/></>;
-      case 39:return <Breakdown values={[{label:"En catálogo sin aviso",n:eligibleCount,color:"#32d1d8"},{label:"No ofertada",n:data.subjects.length-eligibleCount,color:"#e4bd6b"}]}/>;
+      case 39:return <Breakdown values={[{label:"En catálogo sin aviso",n:eligibleCount,color:"var(--color-subjects)"},{label:"No ofertada",n:data.subjects.length-eligibleCount,color:"var(--color-chart-amber)"}]}/>;
       case 40:return focus?.guide?<><p className="mb-2 text-sm font-medium">{focus.name}</p><Transcript text={focus.guide.basic} sourceUrl={focus.guide.sourceUrl}/></>:<Empty/>;
       case 41:return <Scatter points={points((_,t)=>({x:avgDifficulty(t),y:avgGrade(t)}))} xLabel="Dificultad /5" yLabel="Nota /10" xMax={5} yMax={10}/>;
       case 42:return <Scatter points={points((_,t)=>({x:avgHours(t),y:avgSatisfaction(t)}))} xLabel="Horas por semana" yLabel="Satisfacción /5" xMax={18} yMax={5}/>;
@@ -250,7 +241,7 @@ export function SubjectsDemoDashboard({data}:{data:Demo716Payload}){
       <p className="section-marker section-marker-subjects">DEMO · SISTEMA DE APOYO A LA DECISIÓN</p>
       <h1 className="font-display mt-4 text-4xl leading-tight md:text-6xl">OBSERVATORIO <span className="text-[var(--color-subjects)]">DE OPTATIVAS.</span></h1>
       <p className="mt-3 max-w-4xl text-sm leading-relaxed text-[var(--color-fg-dim)]">Grado en Ingeniería Informática · Escuela de Ingeniería y Arquitectura · UNIZAR · Plan {data.planCode} · 2026-2027. Explora evidencias y toma tu decisión: el sistema no elige por ti.</p>
-      <div className="mt-5 flex flex-wrap items-center gap-2 text-[11px]"><span className="border border-[var(--color-border-light)] px-2.5 py-1.5">Catálogo y guías: oficiales</span><span className="border border-amber-400/35 bg-amber-400/5 px-2.5 py-1.5 text-amber-200">Notas individuales, encuestas y cohortes: simuladas</span><span className="border border-[var(--color-border-light)] px-2.5 py-1.5">31 referencias oficiales agregadas</span></div>
+      <div className="mt-5 flex flex-wrap items-center gap-2 text-[11px]"><span className="border border-[var(--color-border-light)] px-2.5 py-1.5">Catálogo y guías: oficiales</span><span className="border border-border-light bg-warning-bg px-2.5 py-1.5 text-warning-fg">Notas individuales, encuestas y cohortes: simuladas</span><span className="border border-[var(--color-border-light)] px-2.5 py-1.5">31 referencias oficiales agregadas</span></div>
     </header>
 
     <section className="grid gap-px overflow-hidden border border-[var(--color-border)] bg-[var(--color-border)] sm:grid-cols-2 xl:grid-cols-5">
@@ -272,7 +263,7 @@ export function SubjectsDemoDashboard({data}:{data:Demo716Payload}){
 
     <nav className="grid grid-cols-3 gap-2 xl:grid-cols-6" aria-label="Categorías de indicadores">{CATEGORIES.map(c=><button key={c.key} type="button" aria-pressed={category===c.key} onClick={()=>setCategory(c.key)} className={`border px-3 py-3 text-left transition-colors ${category===c.key?"border-[var(--color-subjects)] bg-[var(--color-subjects)]/10":"border-[var(--color-border-light)] bg-[var(--color-bg-card)] hover:border-[var(--color-subjects)]/60"}`}><span className="block font-mono text-[10px] text-[var(--color-subjects)]">{c.key} / {c.metrics.length} KPI</span><span className="mt-1 block font-heading text-sm">{c.short}</span></button>)}</nav>
 
-    <section aria-live="polite"><div className="mb-5 flex flex-wrap items-center justify-between gap-3"><div><p className="font-mono text-xs tracking-widest text-[var(--color-subjects)]">BLOQUE {category}</p><h2 className="font-display mt-2 text-2xl md:text-4xl">{current.name}</h2></div><label className="flex items-center gap-2 text-xs text-[var(--color-fg-dim)]"><input type="checkbox" checked={onlySelected} onChange={(e: ChangeEvent<HTMLInputElement>)=>setOnlySelected(e.target.checked)} className="accent-cyan-400"/>Solo materias comparadas</label></div>
+    <section aria-live="polite"><div className="mb-5 flex flex-wrap items-center justify-between gap-3"><div><p className="font-mono text-xs tracking-widest text-[var(--color-subjects)]">BLOQUE {category}</p><h2 className="font-display mt-2 text-2xl md:text-4xl">{current.name}</h2></div><label className="flex items-center gap-2 text-xs text-[var(--color-fg-dim)]"><input type="checkbox" checked={onlySelected} onChange={(e: ChangeEvent<HTMLInputElement>)=>setOnlySelected(e.target.checked)} className="accent-subjects-fill"/>Solo materias comparadas</label></div>
       <div className="grid gap-4 lg:grid-cols-2">{current.metrics.map(m=><Panel key={m.id} metric={m}>{panelContent(m.id)}</Panel>)}</div>
     </section>
 
